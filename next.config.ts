@@ -40,13 +40,15 @@ const nextConfig: NextConfig = {
 if (process.env.NODE_ENV === 'production') {
   // @ts-ignore
   const { PrismaPlugin } = require('@prisma/nextjs-monorepo-workaround-plugin')
-  const webpack = nextConfig.webpack
-  nextConfig.webpack = (config, options) => {
-    if (options.isServer) {
+  module.exports = {
+  webpack: (config, { isServer }) => {
+    if (isServer) {
       config.plugins = [...config.plugins, new PrismaPlugin()]
     }
-    return webpack ? webpack(config, options) : config
-  }
+
+    return config
+  },
+}
 }
 
 export default nextConfig
