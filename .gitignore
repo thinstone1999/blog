@@ -41,5 +41,5 @@ robots.txt
 sitemap.xml
 
 # 生成的文件
-generated
+# generated
 .claude
