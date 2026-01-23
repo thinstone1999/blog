@@ -33,22 +33,17 @@ const nextConfig: NextConfig = {
         destination: '/api/feed.xml'
       }
     ]
-  }
-}
+  },
 
-// Prisma workaround for Vercel deployment
-if (process.env.NODE_ENV === 'production') {
-  // @ts-ignore
-  const { PrismaPlugin } = require('@prisma/nextjs-monorepo-workaround-plugin')
-  module.exports = {
-  webpack: (config, { isServer }) => {
-    if (isServer) {
+  webpack: (config: any, { isServer }: { isServer: boolean }) => {
+    if (isServer && process.env.NODE_ENV === 'production') {
+      // @ts-ignore
+      const { PrismaPlugin } = require('@prisma/nextjs-monorepo-workaround-plugin')
       config.plugins = [...config.plugins, new PrismaPlugin()]
     }
 
     return config
   },
-}
 }
 
 export default nextConfig
