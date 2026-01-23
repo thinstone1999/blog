@@ -120,10 +120,6 @@
       "sharp",
       "simple-git-hooks",
       "unrs-resolver"
-    ],
-    "patchedDependencies": {}
-  },
-  "prisma": {
-    "schema": "prisma/schema.prisma"
+    ]
   }
 }
