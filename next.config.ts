@@ -36,7 +36,17 @@ const nextConfig: NextConfig = {
   }
 }
 
-// 注意：在Vercel部署时，如果遇到Prisma Query Engine问题，
-// 请使用环境变量 PRISMA_GENERATE_CLIENT=1 来确保正确生成客户端
+// Prisma workaround for Vercel deployment
+if (process.env.NODE_ENV === 'production') {
+  // @ts-ignore
+  const { PrismaPlugin } = require('@prisma/nextjs-monorepo-workaround-plugin')
+  const webpack = nextConfig.webpack
+  nextConfig.webpack = (config, options) => {
+    if (options.isServer) {
+      config.plugins = [...config.plugins, new PrismaPlugin()]
+    }
+    return webpack ? webpack(config, options) : config
+  }
+}
 
 export default nextConfig
