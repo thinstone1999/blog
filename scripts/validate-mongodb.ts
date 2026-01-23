@@ -25,9 +25,9 @@ async function validateMongoDBConnection() {
     
     console.log('\n✓ 所有验证通过，MongoDB连接正常！');
     
-  } catch (error) {
-    console.error('✗ 连接验证失败:', error.message);
-    if (error.message.includes('DATABASE_ACCESS_ERROR')) {
+  } catch (error: unknown) {
+    console.error('✗ 连接验证失败:', (error as Error).message);
+    if ((error as Error).message?.includes('DATABASE_ACCESS_ERROR')) {
       console.error('请检查您的DATABASE_URL环境变量配置是否正确');
     }
   } finally {

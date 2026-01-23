@@ -211,7 +211,7 @@ export default function TrafficManagementPage() {
                     if (categoryResult.code === 0 && categoryResult.data) {
                       categoryId = categoryResult.data.id;
                       // 更新本地类别状态
-                      setCategories(prev => [...prev, categoryResult.data]);
+                      setCategories(prev => [...prev, categoryResult.data as TrafficCategoryType]);
                     } else {
                       // 如果创建失败，尝试查找现有类别
                       const existing = categories.find(cat => cat.name === values[1]);
@@ -242,6 +242,12 @@ export default function TrafficManagementPage() {
               date: values[3],
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
+              categoryInfo: {
+                id: categoryId,
+                name: values[1],
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              }
             };
 
             newTrafficData.push(newItem);

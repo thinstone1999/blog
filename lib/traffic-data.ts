@@ -1,25 +1,6 @@
 import type { ApiRes } from './utils'
 import type { TrafficDataWithCategory, TrafficCategoryType } from '@/types/traffic'
 
-// 定义流量数据类型
-export interface TrafficDataWithCategory {
-  id: string;
-  categoryId: string;
-  amount: number;
-  date: string;
-  createdAt: string;
-  updatedAt: string;
-  categoryInfo: TrafficCategoryType;
-}
-
-// 定义流量类别类型
-export type TrafficCategoryType = {
-  id: string;
-  name: string;
-  createdAt: string;
-  updatedAt: string;
-};
-
 // 客户端API调用函数
 export async function createTrafficData(
   props: { categoryId: string; amount: number; date: string }
