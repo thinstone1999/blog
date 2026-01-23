@@ -19,7 +19,7 @@ const createTrafficDataSchema = z.object({
 
 async function createTrafficDataServer(
   props: z.infer<typeof createTrafficDataSchema>
-): Promise<ApiRes<TrafficData>> {
+): Promise<ApiRes<TrafficData | null>> {
   try {
     const parsed = createTrafficDataSchema.safeParse(props)
 
@@ -54,7 +54,7 @@ async function createTrafficDataServer(
     return { code: 0, msg: '创建流量数据成功！', data: res }
   } catch (error) {
     console.error('创建流量数据失败:', error)
-    return { code: -1, msg: `创建流量数据失败：${error}` }
+    return { code: -1, data: null, msg: `创建流量数据失败：${error}` }
   }
 }
 
@@ -86,7 +86,8 @@ async function getTrafficDataByYearServer(year: string): Promise<ApiRes<TrafficD
     const res = await prisma.trafficData.findMany({
       where: {
         date: {
-          startsWith: year
+          gte: `${year}-01`,  // 大于等于该年第一天
+          lt: `${String(parseInt(year) + 1)}-01`  // 小于下一年第一天
         }
       },
       include: {
@@ -109,7 +110,7 @@ async function getTrafficDataByYearServer(year: string): Promise<ApiRes<TrafficD
   }
 }
 
-async function updateTrafficDataServer(id: string, amount: number, date: string, categoryId: string): Promise<ApiRes<TrafficData>> {
+async function updateTrafficDataServer(id: string, amount: number, date: string, categoryId: string): Promise<ApiRes<TrafficData | null>> {
   try {
     // 检查类别是否存在
     const categoryExists = await prisma.trafficCategory.findUnique({
@@ -163,7 +164,7 @@ const createTrafficCategorySchema = z.object({
 
 async function createTrafficCategoryServer(
   props: z.infer<typeof createTrafficCategorySchema>
-): Promise<ApiRes<TrafficCategory>> {
+): Promise<ApiRes<TrafficCategory | null>> {
   try {
     const parsed = createTrafficCategorySchema.safeParse(props)
 
@@ -195,7 +196,7 @@ async function createTrafficCategoryServer(
     return { code: 0, msg: '创建流量类别成功！', data: res }
   } catch (error) {
     console.error('创建流量类别失败:', error)
-    return { code: -1, msg: `创建流量类别失败：${error}` }
+    return { code: -1, data: null, msg: `创建流量类别失败：${error}` }
   }
 }
 
@@ -214,7 +215,7 @@ async function getAllTrafficCategoriesServer(): Promise<ApiRes<TrafficCategory[]
   }
 }
 
-async function updateTrafficCategoryServer(id: string, name: string): Promise<ApiRes<TrafficCategory>> {
+async function updateTrafficCategoryServer(id: string, name: string): Promise<ApiRes<TrafficCategory | null>> {
   try {
     // 检查类别名称是否已存在（排除当前类别）
     const existingCategory = await prisma.trafficCategory.findFirst({
@@ -242,7 +243,7 @@ async function updateTrafficCategoryServer(id: string, name: string): Promise<Ap
     return { code: 0, msg: '更新流量类别成功', data: res }
   } catch (error) {
     console.error('更新流量类别失败:', error)
-    return { code: -1, msg: `更新流量类别失败：${error}` }
+    return { code: -1, data: null, msg: `更新流量类别失败：${error}` }
   }
 }
 
@@ -358,6 +359,11 @@ export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json()
     const { action, id } = body
+
+    // 验证ID是否存在
+    if (!id) {
+      return Response.json({ code: 400, msg: '缺少ID参数' })
+    }
 
     let result
 
