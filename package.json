@@ -104,8 +104,11 @@
     "commit-msg": "npx commitlint --edit $1"
   },
   "lint-staged": {
-    "**/*.{tsx,ts}": [
+    "**/*.{js,jsx,ts,tsx}": [
       "eslint --fix"
+    ],
+    "**/*": [
+      "prettier --write --ignore-unknown"
     ]
   },
   "pnpm": {
