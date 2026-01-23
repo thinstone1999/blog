@@ -1,14 +1,13 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import type { TrafficData, TrafficCategory } from '@/generated/prisma/client'
+import type { TrafficData, TrafficCategory } from '../prisma/client'
 import type { ApiRes } from '@/lib/utils'
 
 // 定义流量数据类型
 interface TrafficDataWithCategory extends TrafficData {
   categoryInfo: TrafficCategory
 }
-
 
 // 流量数据验证Schema
 const createTrafficDataSchema = z.object({
@@ -69,7 +68,7 @@ async function getAllTrafficDataServer(): Promise<ApiRes<TrafficDataWithCategory
       }
     })
 
-    const trafficDataWithCategory: TrafficDataWithCategory[] = res.map(item => ({
+    const trafficDataWithCategory: TrafficDataWithCategory[] = res.map((item) => ({
       ...item,
       categoryInfo: item.category
     }))
@@ -81,13 +80,15 @@ async function getAllTrafficDataServer(): Promise<ApiRes<TrafficDataWithCategory
   }
 }
 
-async function getTrafficDataByYearServer(year: string): Promise<ApiRes<TrafficDataWithCategory[]>> {
+async function getTrafficDataByYearServer(
+  year: string
+): Promise<ApiRes<TrafficDataWithCategory[]>> {
   try {
     const res = await prisma.trafficData.findMany({
       where: {
         date: {
-          gte: `${year}-01`,  // 大于等于该年第一天
-          lt: `${String(parseInt(year) + 1)}-01`  // 小于下一年第一天
+          gte: `${year}-01`, // 大于等于该年第一天
+          lt: `${String(parseInt(year) + 1)}-01` // 小于下一年第一天
         }
       },
       include: {
@@ -98,7 +99,7 @@ async function getTrafficDataByYearServer(year: string): Promise<ApiRes<TrafficD
       }
     })
 
-    const trafficDataWithCategory: TrafficDataWithCategory[] = res.map(item => ({
+    const trafficDataWithCategory: TrafficDataWithCategory[] = res.map((item) => ({
       ...item,
       categoryInfo: item.category
     }))
@@ -110,7 +111,12 @@ async function getTrafficDataByYearServer(year: string): Promise<ApiRes<TrafficD
   }
 }
 
-async function updateTrafficDataServer(id: string, amount: number, date: string, categoryId: string): Promise<ApiRes<TrafficData | null>> {
+async function updateTrafficDataServer(
+  id: string,
+  amount: number,
+  date: string,
+  categoryId: string
+): Promise<ApiRes<TrafficData | null>> {
   try {
     // 检查类别是否存在
     const categoryExists = await prisma.trafficCategory.findUnique({
@@ -159,7 +165,10 @@ async function deleteTrafficDataServer(id: string): Promise<ApiRes> {
 
 // 流量类别相关操作
 const createTrafficCategorySchema = z.object({
-  name: z.string().min(1, { message: '类别名称不能为空！' }).max(50, { message: '类别名称不能超过50个字符' })
+  name: z
+    .string()
+    .min(1, { message: '类别名称不能为空！' })
+    .max(50, { message: '类别名称不能超过50个字符' })
 })
 
 async function createTrafficCategoryServer(
@@ -215,7 +224,10 @@ async function getAllTrafficCategoriesServer(): Promise<ApiRes<TrafficCategory[]
   }
 }
 
-async function updateTrafficCategoryServer(id: string, name: string): Promise<ApiRes<TrafficCategory | null>> {
+async function updateTrafficCategoryServer(
+  id: string,
+  name: string
+): Promise<ApiRes<TrafficCategory | null>> {
   try {
     // 检查类别名称是否已存在（排除当前类别）
     const existingCategory = await prisma.trafficCategory.findFirst({
@@ -339,7 +351,12 @@ export async function PUT(request: NextRequest) {
 
     switch (action) {
       case 'updateTrafficData':
-        result = await updateTrafficDataServer(params.id, params.amount, params.date, params.categoryId)
+        result = await updateTrafficDataServer(
+          params.id,
+          params.amount,
+          params.date,
+          params.categoryId
+        )
         break
       case 'updateCategory':
         result = await updateTrafficCategoryServer(params.id, params.name)

@@ -1,7 +1,7 @@
 import { Icon } from '@iconify/react'
 import { ContentCard } from './ContentCard'
 import Link from 'next/link'
-import { Article } from '@/generated/prisma/client'
+import { Article } from '../prisma/client'
 import { TimeInSeconds } from '@/lib/enums'
 import { getJumpArticleDetailsUrl } from '@/lib/utils'
 import dayjs from 'dayjs'
@@ -18,11 +18,7 @@ function ArticleList({ articles }: { articles: Article[] }) {
           key={article.id}
           className="block transition duration-300 ease-in-out hover:bg-black/10 dark:hover:bg-white/10 rounded p-2"
         >
-          <Link
-            href={getJumpArticleDetailsUrl(article)}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+          <Link href={getJumpArticleDetailsUrl(article)} target="_blank" rel="noopener noreferrer">
             <h3 className="text-lg font-semibold mb-2 transition duration-300">{article.title}</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
               {article.summary || 'No description available'}

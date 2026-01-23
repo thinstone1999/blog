@@ -44,7 +44,6 @@ export const authOptions: AuthOptions = {
         password: { label: 'Password', type: 'password' }
       },
       async authorize(credentials) {
-
         if (!credentials?.account || !credentials?.password) {
           return null
         }
@@ -57,7 +56,8 @@ export const authOptions: AuthOptions = {
           return null
         }
 
-        const hashedInput = hashPassword(credentials.password)
+        const hashedInput = credentials.password
+        console.log('back', { a: credentials.password, b: user.password })
         if (hashedInput !== user.password) {
           return null
         }
