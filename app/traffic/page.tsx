@@ -1,19 +1,19 @@
-"use client";
+'use client'
 
-import React, { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import React, { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Trash2, Plus, Download, Upload, ArrowLeft } from "lucide-react";
-import { toast } from "sonner";
+  SelectValue
+} from '@/components/ui/select'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import { Trash2, Plus, Download, Upload, ArrowLeft } from 'lucide-react'
+import { toast } from 'sonner'
 import {
   createTrafficData,
   getAllTrafficData,
@@ -22,215 +22,213 @@ import {
   createTrafficCategory,
   getAllTrafficCategories,
   deleteTrafficCategory
-} from '@/lib/traffic-data';
-import type { TrafficDataWithCategory, TrafficCategoryType } from '@/types/traffic';
+} from '@/lib/traffic-data'
+import type { TrafficDataWithCategory, TrafficCategoryType } from '@/types/traffic'
 
 // 定义流量数据类型
-type TrafficData = TrafficDataWithCategory;
+type TrafficData = TrafficDataWithCategory
 
 // 定义流量类别类型
-type TrafficCategory = TrafficCategoryType;
+type TrafficCategory = TrafficCategoryType
 
 export default function TrafficManagementPage() {
   // 流量数据状态
-  const [trafficData, setTrafficData] = useState<TrafficData[]>([]);
+  const [trafficData, setTrafficData] = useState<TrafficData[]>([])
 
   // 流量类别状态
-  const [categories, setCategories] = useState<TrafficCategory[]>([]);
+  const [categories, setCategories] = useState<TrafficCategory[]>([])
 
   // 表单状态
   const [formData, setFormData] = useState({
-    categoryId: "",
-    amount: "",
+    categoryId: '',
+    amount: '',
     year: String(new Date().getFullYear()), // 年份
-    month: String(new Date().getMonth() + 1), // 月份
-  });
+    month: String(new Date().getMonth() + 1) // 月份
+  })
 
   // 新类别输入状态
-  const [newCategory, setNewCategory] = useState("");
-  const [showAddCategory, setShowAddCategory] = useState(false);
-  const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [newCategory, setNewCategory] = useState('')
+  const [showAddCategory, setShowAddCategory] = useState(false)
+  const [showCategoryManager, setShowCategoryManager] = useState(false)
 
   // 分页和筛选状态
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10); // 每页显示10条
-  const [filterYear, setFilterYear] = useState(""); // 按年度筛选
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(10) // 每页显示10条
+  const [filterYear, setFilterYear] = useState('') // 按年度筛选
 
   // 加载数据
   useEffect(() => {
-    loadTrafficData();
-    loadCategories();
-  }, []);
+    loadTrafficData()
+    loadCategories()
+  }, [])
 
   // 加载流量数据
   const loadTrafficData = async () => {
     try {
-      const result = await getAllTrafficData();
+      const result = await getAllTrafficData()
       if (result.code === 0 && result.data) {
-        setTrafficData(result.data);
+        setTrafficData(result.data)
       } else {
-        toast.error(result.msg || "加载流量数据失败");
+        toast.error(result.msg || '加载流量数据失败')
       }
     } catch (error) {
-      console.error("加载流量数据失败:", error);
-      toast.error("加载流量数据失败");
+      console.error('加载流量数据失败:', error)
+      toast.error('加载流量数据失败')
     }
-  };
+  }
 
   // 加载类别数据
   const loadCategories = async () => {
     try {
-      const result = await getAllTrafficCategories();
+      const result = await getAllTrafficCategories()
       if (result.code === 0 && result.data) {
-        setCategories(result.data);
+        setCategories(result.data)
       } else {
-        toast.error(result.msg || "加载类别数据失败");
+        toast.error(result.msg || '加载类别数据失败')
       }
     } catch (error) {
-      console.error("加载类别数据失败:", error);
-      toast.error("加载类别数据失败");
+      console.error('加载类别数据失败:', error)
+      toast.error('加载类别数据失败')
     }
-  };
+  }
 
   // 筛选和排序数据
   const filteredAndSortedData = trafficData
     .filter((item) => {
       if (filterYear) {
-        const [year] = item.date.split("-");
-        return year === filterYear;
+        const [year] = item.date.split('-')
+        return year === filterYear
       }
-      return true;
+      return true
     })
-    .sort((a, b) => b.date.localeCompare(a.date)); // 按日期降序排列
+    .sort((a, b) => b.date.localeCompare(a.date)) // 按日期降序排列
 
   // 计算分页数据
-  const totalPages = Math.ceil(filteredAndSortedData.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentData = filteredAndSortedData.slice(startIndex, endIndex);
+  const totalPages = Math.ceil(filteredAndSortedData.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentData = filteredAndSortedData.slice(startIndex, endIndex)
 
   // 导入导出功能
   const exportData = () => {
     // 创建CSV内容
-    let csvContent = "id,category,amount,date\n"; // 表头
+    let csvContent = 'id,category,amount,date\n' // 表头
 
     // 添加流量数据
     trafficData.forEach((item) => {
       // 获取类别名称
-      const category = categories.find((cat) => cat.id === item.categoryId);
-      const categoryName = category ? category.name : item.categoryId;
+      const category = categories.find((cat) => cat.id === item.categoryId)
+      const categoryName = category ? category.name : item.categoryId
 
       // 添加数据行，处理可能包含逗号的值
-      csvContent += `"${item.id}","${categoryName}","${item.amount}","${item.date}"\n`;
-    });
+      csvContent += `"${item.id}","${categoryName}","${item.amount}","${item.date}"\n`
+    })
 
     // 创建Blob对象并下载
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `traffic-data-${new Date().toISOString().slice(0, 19)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    toast.success("数据导出成功");
-  };
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `traffic-data-${new Date().toISOString().slice(0, 19)}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    toast.success('数据导出成功')
+  }
 
   const importData = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const file = event.target.files?.[0]
+    if (!file) return
 
-    const reader = new FileReader();
+    const reader = new FileReader()
     reader.onload = (e) => {
       try {
-        const content = e.target?.result as string;
+        const content = e.target?.result as string
         if (!content) {
-          toast.error("文件内容为空");
-          return;
+          toast.error('文件内容为空')
+          return
         }
 
         // 解析CSV内容
-        const lines = content.split("\n");
+        const lines = content.split('\n')
         if (lines.length < 2) {
-          toast.error("CSV文件格式不正确");
-          return;
+          toast.error('CSV文件格式不正确')
+          return
         }
 
         // 解析数据行
-        const newTrafficData: TrafficData[] = [];
-        const newCategoriesMap: { [name: string]: string } = {};
+        const newTrafficData: TrafficData[] = []
+        const newCategoriesMap: { [name: string]: string } = {}
 
         for (let i = 1; i < lines.length; i++) {
-          const line = lines[i].trim();
-          if (!line) continue; // 跳过空行
+          const line = lines[i].trim()
+          if (!line) continue // 跳过空行
 
           // 处理可能包含引号和逗号的值
-          const values: string[] = [];
-          let currentValue = "";
-          let insideQuotes = false;
+          const values: string[] = []
+          let currentValue = ''
+          let insideQuotes = false
 
           for (let j = 0; j < line.length; j++) {
-            const char = line[j];
+            const char = line[j]
 
             if (char === '"') {
               if (insideQuotes && j + 1 < line.length && line[j + 1] === '"') {
                 // 处理双引号转义
-                currentValue += '"';
-                j++; // 跳过下一个引号
+                currentValue += '"'
+                j++ // 跳过下一个引号
               } else {
                 // 切换引号状态
-                insideQuotes = !insideQuotes;
+                insideQuotes = !insideQuotes
               }
-            } else if (char === "," && !insideQuotes) {
-              values.push(currentValue.trim().replace(/^"|"$/g, "")); // 移除首尾引号
-              currentValue = "";
+            } else if (char === ',' && !insideQuotes) {
+              values.push(currentValue.trim().replace(/^"|"$/g, '')) // 移除首尾引号
+              currentValue = ''
             } else {
-              currentValue += char;
+              currentValue += char
             }
           }
 
           // 添加最后一个值
-          values.push(currentValue.trim().replace(/^"|"$/g, ""));
+          values.push(currentValue.trim().replace(/^"|"$/g, ''))
 
           // 确保有足够的值
           if (values.length >= 4) {
             // 查找或创建类别
-            let categoryId = newCategoriesMap[values[1]]; // values[1] 是类别名称
+            let categoryId = newCategoriesMap[values[1]] // values[1] 是类别名称
             if (!categoryId) {
               // 检查是否已存在于现有类别中
-              const existingCategory = categories.find(
-                (cat) => cat.name === values[1],
-              );
+              const existingCategory = categories.find((cat) => cat.name === values[1])
               if (existingCategory) {
-                categoryId = existingCategory.id;
+                categoryId = existingCategory.id
               } else {
                 // 创建新类别
                 createTrafficCategory({ name: values[1] })
-                  .then(categoryResult => {
+                  .then((categoryResult) => {
                     if (categoryResult.code === 0 && categoryResult.data) {
-                      categoryId = categoryResult.data.id;
+                      categoryId = categoryResult.data.id
                       // 更新本地类别状态
-                      setCategories(prev => [...prev, categoryResult.data as TrafficCategoryType]);
+                      setCategories((prev) => [...prev, categoryResult.data as TrafficCategoryType])
                     } else {
                       // 如果创建失败，尝试查找现有类别
-                      const existing = categories.find(cat => cat.name === values[1]);
+                      const existing = categories.find((cat) => cat.name === values[1])
                       if (existing) {
-                        categoryId = existing.id;
+                        categoryId = existing.id
                       } else {
                         // 如果还是找不到，创建临时ID
-                        categoryId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+                        categoryId = Date.now().toString() + Math.random().toString(36).substr(2, 5)
                       }
                     }
 
-                    newCategoriesMap[values[1]] = categoryId;
+                    newCategoriesMap[values[1]] = categoryId
                   })
-                  .catch(error => {
-                    console.error("创建类别失败:", error);
+                  .catch((error) => {
+                    console.error('创建类别失败:', error)
                     // 如果创建失败，创建临时ID
-                    categoryId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
-                    newCategoriesMap[values[1]] = categoryId;
-                  });
+                    categoryId = Date.now().toString() + Math.random().toString(36).substr(2, 5)
+                    newCategoriesMap[values[1]] = categoryId
+                  })
               }
             }
 
@@ -248,183 +246,165 @@ export default function TrafficManagementPage() {
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
               }
-            };
+            }
 
-            newTrafficData.push(newItem);
+            newTrafficData.push(newItem)
           }
         }
 
         // 将解析的数据逐个保存到数据库
-        let successCount = 0;
-        let processedCount = 0;
+        let successCount = 0
+        let processedCount = 0
 
         if (newTrafficData.length === 0) {
-          toast.info("没有找到有效的数据行");
-          return;
+          toast.info('没有找到有效的数据行')
+          return
         }
 
-        newTrafficData.forEach(item => {
+        newTrafficData.forEach((item) => {
           createTrafficData({
             categoryId: item.categoryId,
             amount: item.amount,
             date: item.date
           })
-          .then(result => {
-            if (result.code === 0) {
-              successCount++;
-            } else {
-              console.error(`保存流量数据失败: ${result.msg}`);
-            }
-          })
-          .catch(error => {
-            console.error(`保存流量数据时出错:`, error);
-          })
-          .finally(() => {
-            processedCount++;
-            if (processedCount === newTrafficData.length) {
-              // 所有数据处理完成，重新加载数据
-              loadTrafficData();
-              loadCategories();
-              toast.success(`成功导入 ${successCount}/${newTrafficData.length} 条数据`);
-            }
-          });
-        });
+            .then((result) => {
+              if (result.code === 0) {
+                successCount++
+              } else {
+                console.error(`保存流量数据失败: ${result.msg}`)
+              }
+            })
+            .catch((error) => {
+              console.error(`保存流量数据时出错:`, error)
+            })
+            .finally(() => {
+              processedCount++
+              if (processedCount === newTrafficData.length) {
+                // 所有数据处理完成，重新加载数据
+                loadTrafficData()
+                loadCategories()
+                toast.success(`成功导入 ${successCount}/${newTrafficData.length} 条数据`)
+              }
+            })
+        })
       } catch (error) {
-        console.error("导入数据失败:", error);
-        toast.error("导入数据失败，请检查文件格式");
+        console.error('导入数据失败:', error)
+        toast.error('导入数据失败，请检查文件格式')
       }
-    };
-    reader.readAsText(file);
+    }
+    reader.readAsText(file)
     // 重置input，允许重复导入同一文件
-    event.target.value = "";
-  };
+    event.target.value = ''
+  }
 
   // 处理表单输入变化
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const target = e.target as HTMLInputElement;
-    const { name, value } = target;
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const target = e.target as HTMLInputElement
+    const { name, value } = target
 
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
-    }));
-  };
+      [name]: value
+    }))
+  }
 
   // 添加新流量数据
   const handleAddTraffic = async () => {
-    if (
-      !formData.categoryId ||
-      !formData.amount ||
-      !formData.year ||
-      !formData.month
-    ) {
-      toast.error("请填写完整信息");
-      return;
+    if (!formData.categoryId || !formData.amount || !formData.year || !formData.month) {
+      toast.error('请填写完整信息')
+      return
     }
 
-    const amount = parseFloat(formData.amount);
+    const amount = parseFloat(formData.amount)
     if (isNaN(amount) || amount <= 0) {
-      toast.error("请输入有效的数量");
-      return;
+      toast.error('请输入有效的数量')
+      return
     }
 
     // 创建月份标识符，格式为 YYYY-MM
-    const monthIdentifier = `${formData.year}-${formData.month.padStart(
-      2,
-      "0",
-    )}`;
+    const monthIdentifier = `${formData.year}-${formData.month.padStart(2, '0')}`
 
     try {
       const result = await createTrafficData({
         categoryId: formData.categoryId,
         amount: amount,
-        date: monthIdentifier,
-      });
+        date: monthIdentifier
+      })
 
       if (result.code === 0) {
         // 重新加载数据
-        loadTrafficData();
-        
-        // 重置表单
-        const now = new Date();
-        setFormData({
-          categoryId: "",
-          amount: "",
-          year: String(now.getFullYear()),
-          month: String(now.getMonth() + 1),
-        });
+        loadTrafficData()
 
-        toast.success("流量数据已添加");
+        // 重置表单
+        const now = new Date()
+        setFormData({
+          categoryId: '',
+          amount: '',
+          year: String(now.getFullYear()),
+          month: String(now.getMonth() + 1)
+        })
+
+        toast.success('流量数据已添加')
       } else {
-        toast.error(result.msg || "添加流量数据失败");
+        toast.error(result.msg || '添加流量数据失败')
       }
     } catch (error) {
-      console.error("添加流量数据失败:", error);
-      toast.error("添加流量数据失败");
+      console.error('添加流量数据失败:', error)
+      toast.error('添加流量数据失败')
     }
-  };
+  }
 
   // 删除流量数据
   const handleDeleteTraffic = async (id: string) => {
     try {
-      const result = await deleteTrafficData(id);
+      const result = await deleteTrafficData(id)
 
       if (result.code === 0) {
         // 从本地状态中移除
-        setTrafficData((prev) => prev.filter((item) => item.id !== id));
-        toast.success("流量数据已删除");
+        setTrafficData((prev) => prev.filter((item) => item.id !== id))
+        toast.success('流量数据已删除')
       } else {
-        toast.error(result.msg || "删除流量数据失败");
+        toast.error(result.msg || '删除流量数据失败')
       }
     } catch (error) {
-      console.error("删除流量数据失败:", error);
-      toast.error("删除流量数据失败");
+      console.error('删除流量数据失败:', error)
+      toast.error('删除流量数据失败')
     }
-  };
+  }
 
   // 编辑流量数据
-  const [editingRecord, setEditingRecord] = useState<TrafficData | null>(null);
+  const [editingRecord, setEditingRecord] = useState<TrafficData | null>(null)
 
   const handleEditTraffic = (record: TrafficData) => {
-    setEditingRecord(record);
+    setEditingRecord(record)
     // 解析月份标识符
-    const [year, month] = record.date.split("-");
+    const [year, month] = record.date.split('-')
     setFormData({
       categoryId: record.categoryId,
       amount: String(record.amount),
       year,
-      month,
-    });
-  };
+      month
+    })
+  }
 
   const handleUpdateTraffic = async () => {
-    if (
-      !formData.categoryId ||
-      !formData.amount ||
-      !formData.year ||
-      !formData.month
-    ) {
-      toast.error("请填写完整信息");
-      return;
+    if (!formData.categoryId || !formData.amount || !formData.year || !formData.month) {
+      toast.error('请填写完整信息')
+      return
     }
 
-    const amount = parseFloat(formData.amount);
+    const amount = parseFloat(formData.amount)
     if (isNaN(amount) || amount <= 0) {
-      toast.error("请输入有效的数量");
-      return;
+      toast.error('请输入有效的数量')
+      return
     }
 
     // 创建月份标识符，格式为 YYYY-MM
-    const monthIdentifier = `${formData.year}-${formData.month.padStart(
-      2,
-      "0",
-    )}`;
+    const monthIdentifier = `${formData.year}-${formData.month.padStart(2, '0')}`
 
     if (!editingRecord) {
-      toast.error("没有正在编辑的记录");
-      return;
+      toast.error('没有正在编辑的记录')
+      return
     }
 
     try {
@@ -433,98 +413,96 @@ export default function TrafficManagementPage() {
         amount,
         monthIdentifier,
         formData.categoryId
-      );
+      )
 
       if (result.code === 0) {
         // 重新加载数据
-        loadTrafficData();
+        loadTrafficData()
 
-        setEditingRecord(null);
-        const now = new Date();
+        setEditingRecord(null)
+        const now = new Date()
         setFormData({
-          categoryId: "",
-          amount: "",
+          categoryId: '',
+          amount: '',
           year: String(now.getFullYear()),
-          month: String(now.getMonth() + 1),
-        });
-        toast.success("流量数据已更新");
+          month: String(now.getMonth() + 1)
+        })
+        toast.success('流量数据已更新')
       } else {
-        toast.error(result.msg || "更新流量数据失败");
+        toast.error(result.msg || '更新流量数据失败')
       }
     } catch (error) {
-      console.error("更新流量数据失败:", error);
-      toast.error("更新流量数据失败");
+      console.error('更新流量数据失败:', error)
+      toast.error('更新流量数据失败')
     }
-  };
+  }
 
   const handleCancelEdit = () => {
-    setEditingRecord(null);
-    const now = new Date();
+    setEditingRecord(null)
+    const now = new Date()
     setFormData({
-      categoryId: "",
-      amount: "",
+      categoryId: '',
+      amount: '',
       year: String(now.getFullYear()),
-      month: String(now.getMonth() + 1),
-    });
-  };
+      month: String(now.getMonth() + 1)
+    })
+  }
 
   // 删除类别
   const handleDeleteCategory = async (categoryId: string) => {
     try {
-      const result = await deleteTrafficCategory(categoryId);
+      const result = await deleteTrafficCategory(categoryId)
 
       if (result.code === 0) {
         // 从本地状态中移除
-        setCategories((prev) => prev.filter((cat) => cat.id !== categoryId));
+        setCategories((prev) => prev.filter((cat) => cat.id !== categoryId))
         // 如果删除的是当前选中的类别，则清空选择
         if (formData.categoryId === categoryId) {
-          setFormData((prev) => ({ ...prev, categoryId: "" }));
+          setFormData((prev) => ({ ...prev, categoryId: '' }))
         }
-        toast.success("类别已删除");
+        toast.success('类别已删除')
       } else {
-        toast.error(result.msg || "删除类别失败");
+        toast.error(result.msg || '删除类别失败')
       }
     } catch (error) {
-      console.error("删除类别失败:", error);
-      toast.error("删除类别失败");
+      console.error('删除类别失败:', error)
+      toast.error('删除类别失败')
     }
-  };
+  }
 
   // 添加新类别
   const handleAddCategory = async () => {
     if (!newCategory.trim()) {
-      toast.error("请输入类别名称");
-      return;
+      toast.error('请输入类别名称')
+      return
     }
 
     try {
       const result = await createTrafficCategory({
         name: newCategory.trim()
-      });
+      })
 
       if (result.code === 0) {
         // 重新加载类别
-        loadCategories();
-        
-        setFormData((prev) => ({ ...prev, categoryId: result.data?.id || "" }));
-        setNewCategory("");
-        setShowAddCategory(false);
-        toast.success("类别已添加");
+        loadCategories()
+
+        setFormData((prev) => ({ ...prev, categoryId: result.data?.id || '' }))
+        setNewCategory('')
+        setShowAddCategory(false)
+        toast.success('类别已添加')
       } else {
-        toast.error(result.msg || "添加类别失败");
+        toast.error(result.msg || '添加类别失败')
       }
     } catch (error) {
-      console.error("添加类别失败:", error);
-      toast.error("添加类别失败");
+      console.error('添加类别失败:', error)
+      toast.error('添加类别失败')
     }
-  };
+  }
 
   return (
     <div className="flex flex-col h-full w-full max-w-screen-xl mx-auto p-4">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start sm:items-center gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200">
-          流量管理
-        </h1>
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200">流量管理</h1>
         <div className="flex flex-wrap gap-3 justify-end">
           <button
             onClick={exportData}
@@ -536,22 +514,17 @@ export default function TrafficManagementPage() {
           <label className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200 text-sm cursor-pointer min-w-[96px] text-center flex items-center justify-center gap-2">
             <Upload className="w-4 h-4" />
             导入数据
-            <input
-              type="file"
-              accept=".csv"
-              onChange={importData}
-              className="hidden"
-            />
+            <input type="file" accept=".csv" onChange={importData} className="hidden" />
           </label>
           <button
-            onClick={() => (window.location.href = "/traffic-stats")}
+            onClick={() => (window.location.href = '/traffic/stats')}
             className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors duration-200 text-sm flex items-center gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
             流量统计
           </button>
           <button
-            onClick={() => (window.location.href = "/")}
+            onClick={() => (window.location.href = '/')}
             className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors duration-200 text-sm flex items-center gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -582,7 +555,7 @@ export default function TrafficManagementPage() {
               </div>
               <Select
                 value={formData.categoryId}
-                onValueChange={(value) => setFormData({...formData, categoryId: value})}
+                onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="请选择类别" />
@@ -608,9 +581,7 @@ export default function TrafficManagementPage() {
                         key={category.id}
                         className="flex items-center bg-blue-50 dark:bg-blue-900/50 border border-blue-200 dark:border-blue-800 rounded-lg px-3 py-1 text-sm"
                       >
-                        <span className="text-blue-700 dark:text-blue-300">
-                          {category.name}
-                        </span>
+                        <span className="text-blue-700 dark:text-blue-300">{category.name}</span>
                         <button
                           type="button"
                           onClick={() => handleDeleteCategory(category.id)}
@@ -631,17 +602,10 @@ export default function TrafficManagementPage() {
                         onChange={(e) => setNewCategory(e.target.value)}
                         className="flex-grow"
                       />
-                      <Button
-                        onClick={handleAddCategory}
-                        size="sm"
-                      >
+                      <Button onClick={handleAddCategory} size="sm">
                         添加
                       </Button>
-                      <Button
-                        onClick={() => setShowAddCategory(false)}
-                        size="sm"
-                        variant="outline"
-                      >
+                      <Button onClick={() => setShowAddCategory(false)} size="sm" variant="outline">
                         取消
                       </Button>
                     </div>
@@ -684,7 +648,7 @@ export default function TrafficManagementPage() {
                 <Select
                   value={formData.year}
                   onValueChange={(value) => {
-                    setFormData({...formData, year: value});
+                    setFormData({ ...formData, year: value })
                   }}
                 >
                   <SelectTrigger>
@@ -692,12 +656,12 @@ export default function TrafficManagementPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {Array.from({ length: 10 }, (_, i) => {
-                      const year = new Date().getFullYear() - 5 + i;
+                      const year = new Date().getFullYear() - 5 + i
                       return (
                         <SelectItem key={year} value={String(year)}>
                           {year}年
                         </SelectItem>
-                      );
+                      )
                     })}
                   </SelectContent>
                 </Select>
@@ -709,7 +673,7 @@ export default function TrafficManagementPage() {
                 <Select
                   value={formData.month}
                   onValueChange={(value) => {
-                    setFormData({...formData, month: value});
+                    setFormData({ ...formData, month: value })
                   }}
                 >
                   <SelectTrigger>
@@ -717,12 +681,12 @@ export default function TrafficManagementPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {Array.from({ length: 12 }, (_, i) => {
-                      const month = i + 1;
+                      const month = i + 1
                       return (
                         <SelectItem key={month} value={String(month)}>
                           {month}月
                         </SelectItem>
-                      );
+                      )
                     })}
                   </SelectContent>
                 </Select>
@@ -732,17 +696,10 @@ export default function TrafficManagementPage() {
             <div className="sm:col-span-2 lg:col-span-4 flex flex-col sm:flex-row sm:items-end gap-2 mt-2">
               {editingRecord ? (
                 <>
-                  <Button
-                    onClick={handleUpdateTraffic}
-                    className="flex-1"
-                  >
+                  <Button onClick={handleUpdateTraffic} className="flex-1">
                     更新数据
                   </Button>
-                  <Button
-                    onClick={handleCancelEdit}
-                    variant="outline"
-                    className="flex-1"
-                  >
+                  <Button onClick={handleCancelEdit} variant="outline" className="flex-1">
                     取消
                   </Button>
                 </>
@@ -768,8 +725,8 @@ export default function TrafficManagementPage() {
               <Select
                 value={filterYear}
                 onValueChange={(value) => {
-                  setFilterYear(value);
-                  setCurrentPage(1); // 重置到第一页
+                  setFilterYear(value)
+                  setCurrentPage(1) // 重置到第一页
                 }}
               >
                 <SelectTrigger className="w-full sm:w-40">
@@ -777,12 +734,12 @@ export default function TrafficManagementPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {Array.from({ length: 10 }, (_, i) => {
-                    const year = new Date().getFullYear() - 5 + i;
+                    const year = new Date().getFullYear() - 5 + i
                     return (
                       <SelectItem key={year} value={String(year)}>
                         {year}年
                       </SelectItem>
-                    );
+                    )
                   })}
                 </SelectContent>
               </Select>
@@ -801,9 +758,7 @@ export default function TrafficManagementPage() {
               {/* 筛选和排序后的数据 */}
               {filteredAndSortedData.length === 0 ? (
                 <div className="flex items-center justify-center h-64">
-                  <p className="text-gray-500 dark:text-gray-400 text-center">
-                    没有符合条件的数据
-                  </p>
+                  <p className="text-gray-500 dark:text-gray-400 text-center">没有符合条件的数据</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -818,7 +773,7 @@ export default function TrafficManagementPage() {
                     </thead>
                     <tbody>
                       {currentData.map((item) => {
-                        const categoryName = item.categoryInfo?.name || "未知类别";
+                        const categoryName = item.categoryInfo?.name || '未知类别'
                         return (
                           <tr key={item.id} className="border-b">
                             <td className="py-2 px-4">{categoryName}</td>
@@ -843,7 +798,7 @@ export default function TrafficManagementPage() {
                               </div>
                             </td>
                           </tr>
-                        );
+                        )
                       })}
                     </tbody>
                   </table>
@@ -854,15 +809,12 @@ export default function TrafficManagementPage() {
               {totalPages > 1 && (
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 pt-4 border-t">
                   <div className="text-sm text-gray-600 dark:text-gray-400">
-                    显示 {startIndex + 1}-
-                    {Math.min(endIndex, filteredAndSortedData.length)} 条，共{" "}
+                    显示 {startIndex + 1}-{Math.min(endIndex, filteredAndSortedData.length)} 条，共{' '}
                     {filteredAndSortedData.length} 条记录
                   </div>
                   <div className="flex items-center space-x-2">
                     <Button
-                      onClick={() =>
-                        setCurrentPage((prev) => Math.max(prev - 1, 1))
-                      }
+                      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                       disabled={currentPage === 1}
                       variant="outline"
                     >
@@ -871,36 +823,34 @@ export default function TrafficManagementPage() {
 
                     {/* 页码按钮 */}
                     {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      let pageNum;
+                      let pageNum
                       if (totalPages <= 5) {
                         // 总页数小于等于5，显示所有页码
-                        pageNum = i + 1;
+                        pageNum = i + 1
                       } else if (currentPage <= 3) {
                         // 当前页靠近开头，显示前5页
-                        pageNum = i + 1;
+                        pageNum = i + 1
                       } else if (currentPage >= totalPages - 2) {
                         // 当前页靠近结尾，显示后5页
-                        pageNum = totalPages - 4 + i;
+                        pageNum = totalPages - 4 + i
                       } else {
                         // 当前页在中间，显示当前页前后各两页
-                        pageNum = currentPage - 2 + i;
+                        pageNum = currentPage - 2 + i
                       }
 
                       return (
                         <Button
                           key={pageNum}
                           onClick={() => setCurrentPage(pageNum)}
-                          variant={currentPage === pageNum ? "default" : "outline"}
+                          variant={currentPage === pageNum ? 'default' : 'outline'}
                         >
                           {pageNum}
                         </Button>
-                      );
+                      )
                     })}
 
                     <Button
-                      onClick={() =>
-                        setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-                      }
+                      onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                       disabled={currentPage === totalPages}
                       variant="outline"
                     >
@@ -914,5 +864,5 @@ export default function TrafficManagementPage() {
         </CardContent>
       </Card>
     </div>
-  );
-};
+  )
+}

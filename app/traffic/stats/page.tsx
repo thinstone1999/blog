@@ -38,14 +38,9 @@ ChartJS.register(
 )
 
 // 定义流量数据类型
-interface TrafficData {
-  id: string
-  category: string
-  amount: number
-  date: string // YYYY-MM format
-}
+type TrafficData = TrafficDataWithCategory
 
-const TrafficStatsPage: React.FC = () => {
+export default function TrafficStatsPage() {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear()) // 当前年份
   const [viewMode, setViewMode] = useState<'month' | 'year'>('month') // 视图模式：月度或年度
   const [trafficData, setTrafficData] = useState<TrafficData[]>([])
@@ -56,29 +51,32 @@ const TrafficStatsPage: React.FC = () => {
   const [categoryDailyData, setCategoryDailyData] = useState<{
     [key: string]: number[]
   }>({}) // 每个类别每月的数据
+  const [categories, setCategories] = useState<TrafficCategoryType[]>([])
 
   // 年份范围（过去5年）
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 4 + i)
 
-  // 从数据库加载流量数据
+  // 从数据库加载流量数据和类别
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const result = await getAllTrafficData()
-        if (result.code === 0 && result.data) {
-          // 将数据库返回的数据格式转换为页面使用的格式
-          const formattedData = result.data.map((item) => ({
-            id: item.id,
-            category: item.categoryId, // 使用 categoryId 字段
-            amount: item.amount,
-            date: item.date
-          }))
-          setTrafficData(formattedData)
+        // 获取流量数据
+        const trafficResult = await getAllTrafficData()
+        if (trafficResult.code === 0 && trafficResult.data) {
+          setTrafficData(trafficResult.data)
         } else {
-          console.error('获取流量数据失败:', result.msg)
+          console.error('获取流量数据失败:', trafficResult.msg)
+        }
+
+        // 获取流量类别
+        const categoryResult = await getAllTrafficCategories()
+        if (categoryResult.code === 0 && categoryResult.data) {
+          setCategories(categoryResult.data)
+        } else {
+          console.error('获取流量类别失败:', categoryResult.msg)
         }
       } catch (error) {
-        console.error('获取流量数据失败:', error)
+        console.error('获取数据失败:', error)
       }
     }
 
@@ -109,18 +107,18 @@ const TrafficStatsPage: React.FC = () => {
           monthlyData[monthIndex] += item.amount
 
           // 初始化类别月度数据数组
-          if (!categoryMonthlyData[item.category]) {
-            categoryMonthlyData[item.category] = Array(12).fill(0)
+          if (!categoryMonthlyData[item.categoryId]) {
+            categoryMonthlyData[item.categoryId] = Array(12).fill(0)
           }
 
           // 累加对应类别的月度流量
-          categoryMonthlyData[item.category][monthIndex] += item.amount
+          categoryMonthlyData[item.categoryId][monthIndex] += item.amount
 
           // 按类别累加
-          if (categoryData[item.category]) {
-            categoryData[item.category] += item.amount
+          if (categoryData[item.categoryId]) {
+            categoryData[item.categoryId] += item.amount
           } else {
-            categoryData[item.category] = item.amount
+            categoryData[item.categoryId] = item.amount
           }
         }
       })
@@ -235,21 +233,21 @@ const TrafficStatsPage: React.FC = () => {
           yearlyData[yearNum] += item.amount
 
           // 初始化类别年度数据对象
-          if (!categoryYearlyData[item.category]) {
-            categoryYearlyData[item.category] = {}
+          if (!categoryYearlyData[item.categoryId]) {
+            categoryYearlyData[item.categoryId] = {}
           }
 
           // 累加对应类别的年度流量
-          if (!categoryYearlyData[item.category][yearNum]) {
-            categoryYearlyData[item.category][yearNum] = 0
+          if (!categoryYearlyData[item.categoryId][yearNum]) {
+            categoryYearlyData[item.categoryId][yearNum] = 0
           }
-          categoryYearlyData[item.category][yearNum] += item.amount
+          categoryYearlyData[item.categoryId][yearNum] += item.amount
 
           // 按类别累加
-          if (categoryData[item.category]) {
-            categoryData[item.category] += item.amount
+          if (categoryData[item.categoryId]) {
+            categoryData[item.categoryId] += item.amount
           } else {
-            categoryData[item.category] = item.amount
+            categoryData[item.categoryId] = item.amount
           }
         }
       })
@@ -275,31 +273,6 @@ const TrafficStatsPage: React.FC = () => {
       setCategoryDailyData(processedCategoryYearlyData) // 存储年度数据
     }
   }, [trafficData, selectedYear, viewMode])
-
-  // 从数据库获取类别信息
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
-
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const result = await getAllTrafficCategories()
-        if (result.code === 0 && result.data) {
-          // 将数据库返回的数据格式转换为页面使用的格式
-          const formattedCategories = result.data.map((item) => ({
-            id: item.id,
-            name: item.name
-          }))
-          setCategories(formattedCategories)
-        } else {
-          console.error('获取流量类别失败:', result.msg)
-        }
-      } catch (error) {
-        console.error('获取流量类别失败:', error)
-      }
-    }
-
-    fetchCategories()
-  }, [])
 
   // 辅助函数：为每条线分配不同颜色
   const getLineColor = (index: number) => {
@@ -465,12 +438,21 @@ const TrafficStatsPage: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full w-full max-w-screen-xl mx-auto p-4">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <h1 className="text-2xl font-bold">流量统计</h1>
-        <Button onClick={() => (window.location.href = '/')} className="flex items-center gap-2">
-          <ArrowLeft className="w-4 h-4" />
-          返回首页
-        </Button>
+        <div className="flex flex-wrap gap-3 justify-end">
+          <Button
+            onClick={() => (window.location.href = '/traffic')}
+            className="flex items-center gap-2 bg-purple-500 hover:bg-purple-600"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            流量管理
+          </Button>
+          <Button onClick={() => (window.location.href = '/')} className="flex items-center gap-2">
+            <ArrowLeft className="w-4 h-4" />
+            返回首页
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-4 mb-6">
@@ -549,5 +531,3 @@ const TrafficStatsPage: React.FC = () => {
     </div>
   )
 }
-
-export default TrafficStatsPage

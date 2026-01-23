@@ -24,11 +24,16 @@ function NavList() {
   const { data: _, status } = useSession()
 
   // 过滤掉需要登录才能访问的路由
-  const filteredRouterList = routerList.filter(item => {
-    const restrictedPaths = ['/traffic-management-page', '/traffic-stats-page'];
+  const filteredRouterList = routerList.filter((item) => {
+    const restrictedPaths = [
+      '/traffic-management-page',
+      '/traffic-stats-page',
+      '/traffic',
+      '/traffic/stats'
+    ]
     // 如果是受限路径且用户未登录，则不显示
-    return !(restrictedPaths.includes(item.path) && status !== 'authenticated');
-  });
+    return !(restrictedPaths.includes(item.path) && status !== 'authenticated')
+  })
 
   return (
     <ul className="flex space-x-1">

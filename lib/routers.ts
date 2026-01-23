@@ -20,7 +20,7 @@ export const routerList = [
     icon: 'material-symbols:monitoring'
   },
   {
-    path: '/traffic-stats-page',
+    path: '/traffic/stats',
     name: '流量统计',
     icon: 'mdi:chart-line'
   }
