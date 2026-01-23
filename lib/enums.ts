@@ -1,15 +1,19 @@
 // 技术栈图标映射
 export const techIcons: Record<string, string> = {
-  TypeScript: 'logos:typescript-icon',
-  Vue: 'logos:vue',
-  NuxtJs: 'logos:nuxt',
-  NextJs: 'logos:nextjs-icon',
-  NestJs: 'logos:nestjs',
   Go: 'logos:go',
-  Mysql: 'logos:mysql'
+  Python: 'logos:python',
+  'C++': 'logos:c-plusplus',
+  '分布式系统': 'material-symbols:architecture',
+  k8s: 'logos:kubernetes',
+  '游戏后端': 'game-icons:cannon',
+  Redis: 'logos:redis',
+  MySQL: 'logos:mysql',
+  MongoDB: 'logos:mongodb',
+  ETCD: 'logos:etcd',
+  NATS: 'logos:nats'
 }
 
-export const techStackData = ['TypeScript', 'Vue', 'NuxtJs', 'NextJs', 'NestJs', 'Go', 'Mysql']
+export const techStackData = ['Go', 'Python', 'C++', '分布式系统', 'k8s', '游戏后端', 'Redis', 'MySQL', 'MongoDB', 'ETCD', 'NATS']
 
 export const TimeInSeconds = {
   oneHour: 3600, // 1小时 = 3600秒

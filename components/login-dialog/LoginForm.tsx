@@ -6,6 +6,7 @@ import { Icon } from '@iconify/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
+import {  hashPassword } from '@/lib/utils'
 
 interface Props {
   setIsLoading: (status: boolean) => void
@@ -30,6 +31,8 @@ const LoginForm = ({ setIsLoading, closeDialog }: Props) => {
     }
 
     setIsLoading(true)
+
+    console.log('Login form submitted with:', { account, password: hashPassword(password)})
 
     const res = await signIn('credentials', {
       account,

@@ -1,7 +1,6 @@
 import { z } from 'zod'
 import type { ApiRes } from './utils'
 import { prisma } from '@/lib/prisma'
-import { generateUUID } from '@/lib/utils'
 import type { CacheData } from '@/generated/prisma/client'
 
 const createCacheDataSchema = z.object({
@@ -33,7 +32,6 @@ export async function createCacheData(
         desc: desc
       },
       create: {
-        id: generateUUID(),
         key: key,
         data: data,
         desc: desc

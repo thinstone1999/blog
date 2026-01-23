@@ -1,7 +1,10 @@
+'use client'
+
 import { routerList } from '@/lib/routers'
 import Link from 'next/link'
 import { Icon } from '@iconify/react'
 import { EmailSubscription } from './email-subscription'
+import { useSession } from 'next-auth/react'
 
 export default function LayoutFooter() {
   const githubUserName = process.env.NEXT_PUBLIC_GITHUB_USER_NAME ?? ''
@@ -20,13 +23,22 @@ export default function LayoutFooter() {
 }
 
 function NavList() {
+  const { status } = useSession();
+
+  // 过滤掉需要登录才能访问的路由
+  const filteredRouterList = routerList.filter(item => {
+    const restrictedPaths = ['/traffic-management-page', '/traffic-stats-page'];
+    // 如果是受限路径且用户未登录，则不显示
+    return !(restrictedPaths.includes(item.path) && status !== 'authenticated');
+  });
+
   return (
     <div>
       <h3 className="text-lg font-semibold mb-4">快速链接</h3>
-      <ul className="flex items-center space-x-2">
-        {routerList.map((item) => (
-          <li key={item.path}>
-            <Link href={item.path} className="text-gray-500 hover:text-black hover:dark:text-white">
+      <ul className="flex items-center space-x-2 flex-wrap">
+        {filteredRouterList.map((item) => (
+          <li key={item.path} className="mb-1">
+            <Link href={item.path} className="text-gray-500 hover:text-black hover:dark:text-white mx-2">
               {item.name}
             </Link>
           </li>

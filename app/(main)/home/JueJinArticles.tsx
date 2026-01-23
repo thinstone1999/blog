@@ -3,6 +3,7 @@ import { ContentCard } from './ContentCard'
 import Link from 'next/link'
 import { Article } from '@/generated/prisma/client'
 import { TimeInSeconds } from '@/lib/enums'
+import { getJumpArticleDetailsUrl } from '@/lib/utils'
 import dayjs from 'dayjs'
 
 function NoFound() {
@@ -18,7 +19,7 @@ function ArticleList({ articles }: { articles: Article[] }) {
           className="block transition duration-300 ease-in-out hover:bg-black/10 dark:hover:bg-white/10 rounded p-2"
         >
           <Link
-            href={`https://juejin.cn/post/${article.id}`}
+            href={getJumpArticleDetailsUrl(article)}
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -73,7 +74,7 @@ export async function JueJinArticles() {
     .sort((a, b) => dayjs(b.createdAt).unix() - dayjs(a.createdAt).unix())
 
   return (
-    <ContentCard title="掘金">
+    <ContentCard title="文章">
       {articles.length === 0 ? <NoFound /> : <ArticleList articles={articles} />}
     </ContentCard>
   )

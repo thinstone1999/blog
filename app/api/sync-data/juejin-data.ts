@@ -23,7 +23,7 @@ async function addArticle(info: AnyObject) {
     summary: brief_content,
     status: '',
     source: '01',
-    userId: 1,
+    userId: '666c8f2d8a3b4c2d1e5f6789', // 在实际应用中应替换为真实的用户ObjectId
     views: view_count,
     likes: digg_count,
     favorites: collect_count,

@@ -8,7 +8,7 @@ const ADMIN_APIS = ['/api/articles/delete', '/api/articles/add', '/api/articles/
 
 export default withAuth(
   function middleware(req) {
-    console.log('request:', req.method, req.url)
+    // console.log('request:', req.method, req.url)
 
     const token = req.nextauth.token
     const path = req.nextUrl.pathname

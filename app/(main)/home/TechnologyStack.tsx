@@ -12,7 +12,7 @@ export function TechnologyStack() {
             className="flex items-center bg-black/5 dark:bg-white/20 rounded-lg px-3 py-1"
           >
             <Icon
-              icon={techIcons[tech] ? techIcons[tech] : 'mdi:code-tags'}
+              icon={techIcons[tech as keyof typeof techIcons] || 'mdi:code-tags'}
               className="mr-2 w-5 h-5"
             />
             <span>{tech}</span>

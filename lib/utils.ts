@@ -47,6 +47,7 @@ export async function getFileHash(file: File) {
 
 // 获取跳转文章详情路径
 export function getJumpArticleDetailsUrl(info: Article) {
+  // console.log("backEnd", info)
   return info.source === '00' ? `/article/${info.id}` : `https://juejin.cn/post/${info.id}`
 }
 
@@ -56,5 +57,6 @@ export function generateUUID() {
 
 // 使用 SHA-256 哈希密码
 export function hashPassword(password: string): string {
+  //return password
   return createHash('sha256').update(password).digest('hex')
 }

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { LoginForm } from './LoginForm'
+import { RegisterForm } from './RegisterForm'
 import { GithubLoginButton } from './GithubLoginButton'
 import {
   Dialog,
@@ -30,16 +31,26 @@ function LoginTips() {
 
 const LoginDialog = ({ onClose, children }: Props) => {
   const [isLoading, setIsLoading] = useState(false)
-
   const [isOpen, setIsOpen] = useState<boolean>(false)
+  const [isRegisterMode, setIsRegisterMode] = useState<boolean>(false)
 
   function openDialog() {
     setIsOpen(true)
+    setIsRegisterMode(false) // 默认打开登录模式
   }
 
   function closeDialog() {
     setIsOpen(false)
+    setIsRegisterMode(false) // 重置模式
     onClose?.()
+  }
+
+  function switchToRegister() {
+    setIsRegisterMode(true)
+  }
+
+  function switchToLogin() {
+    setIsRegisterMode(false)
   }
 
   return (
@@ -49,18 +60,38 @@ const LoginDialog = ({ onClose, children }: Props) => {
       <Dialog open={isOpen} onOpenChange={closeDialog}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>登录</DialogTitle>
+            <DialogTitle>{isRegisterMode ? '注册' : '登录'}</DialogTitle>
 
             <DialogDescription className=" text-center">
-              {isLoading ? <LoginTips></LoginTips> : '请选择下方任意一种方式登录'}
+              {isLoading ? <LoginTips></LoginTips> :
+                isRegisterMode ? '请输入您的注册信息' : '请选择下方任意一种方式登录'}
             </DialogDescription>
           </DialogHeader>
 
-          <LoginForm setIsLoading={setIsLoading} closeDialog={closeDialog} />
+          {isRegisterMode ? (
+            <RegisterForm
+              setIsLoading={setIsLoading}
+              switchToLogin={switchToLogin}
+            />
+          ) : (
+            <>
+              <LoginForm setIsLoading={setIsLoading} closeDialog={closeDialog} />
 
-          <div className="w-full my-1 h-[1px] bg-gray-300 dark:bg-gray-600"></div>
+              <div className="w-full my-1 h-[1px] bg-gray-300 dark:bg-gray-600"></div>
 
-          <GithubLoginButton setIsLoading={setIsLoading} />
+              <GithubLoginButton setIsLoading={setIsLoading} />
+
+              <div className="mt-4 text-center">
+                <button
+                  type="button"
+                  onClick={switchToRegister}
+                  className="text-blue-500 hover:text-blue-700 text-sm"
+                >
+                  没有账号？点击注册
+                </button>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </>

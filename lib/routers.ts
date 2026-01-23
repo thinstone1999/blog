@@ -13,5 +13,15 @@ export const routerList = [
     path: '/guestbook',
     name: '留言板',
     icon: 'mynaui:message-dots'
+  },
+  {
+    path: '/traffic-management-page',
+    name: '流量管理',
+    icon: 'material-symbols:monitoring'
+  },
+  {
+    path: '/traffic-stats-page',
+    name: '流量统计',
+    icon: 'mdi:chart-line'
   }
 ]

@@ -5,8 +5,6 @@ import userIcon from '@/public/user-icon.png'
 import type { GithubUserInfo } from '@/lib/github/user-info'
 import { GithubUserInfoCacheDataKey } from '@/lib/github/user-info'
 import { getCacheDataByKey } from '@/lib/cache-data'
-import type { JuejinUserInfo } from '@/lib/juejin/fetch-user-info'
-import { fetchJuejinUserInfo } from '@/lib/juejin/fetch-user-info'
 import { TimeInSeconds } from '@/lib/enums'
 
 // 统计项组件
@@ -20,95 +18,15 @@ const StatItem = ({ icon, label, value }: { icon: string; label: string; value?:
 
 // 社交媒体链接配置
 const SOCIAL_LINKS = {
-  juejin: {
-    url: 'https://juejin.cn/user/712139266339694',
-    icon: 'simple-icons:juejin',
-    label: '掘金'
-  },
   github: {
-    url: 'https://github.com/vaebe',
+    url: 'https://github.com/thinstone1999',
     icon: 'mdi:github',
     label: 'GitHub'
   }
 } as const
 
-interface SocialStatsSectionProps {
-  platform: keyof typeof SOCIAL_LINKS
-  stats: { icon: string; label: string; value?: number }[]
-}
-
-// 社交媒体统计区块
-const SocialStatsSection = ({ platform, stats }: SocialStatsSectionProps) => (
-  <div className="flex flex-col items-center lg:items-start space-y-4">
-    <Link
-      href={SOCIAL_LINKS[platform].url}
-      className="flex justify-center lg:justify-items-start"
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      <h3 className="inline-flex items-center text-xl font-semibold text-gray-800 dark:text-white hover:text-blue-500 dark:hover:text-blue-400">
-        <Icon icon={SOCIAL_LINKS[platform].icon} className="mr-2" />
-        {SOCIAL_LINKS[platform].label}
-      </h3>
-    </Link>
-    <div className="flex flex-col items-center space-y-2 sm:flex-row sm:items-center sm:space-x-4 sm:space-y-0">
-      {stats.map((stat, index) => (
-        <StatItem key={index} {...stat} />
-      ))}
-    </div>
-  </div>
-)
-
-function GitHubSocialStatsSection({ info }: { info?: GithubUserInfo }) {
-  return (
-    <SocialStatsSection
-      platform="github"
-      stats={[
-        {
-          icon: 'mdi:source-repository',
-          label: '仓库',
-          value: info?.public_repos
-        },
-        { icon: 'mdi:account-group', label: '关注者', value: info?.followers },
-        {
-          icon: 'mdi:account-multiple',
-          label: '正在关注',
-          value: info?.following
-        }
-      ]}
-    />
-  )
-}
-
-async function JuejinSocialStatsSection() {
-  let info: JuejinUserInfo | undefined
-
-  try {
-    info = await fetchJuejinUserInfo()
-  } catch {
-    info = undefined
-  }
-
-  return (
-    <SocialStatsSection
-      platform="juejin"
-      stats={[
-        {
-          icon: 'mdi:file-document-outline',
-          label: '文章',
-          value: info?.post_article_count
-        },
-        { icon: 'mdi:thumb-up', label: '获赞', value: info?.got_digg_count },
-        { icon: 'mdi:eye', label: '阅读量', value: info?.got_view_count }
-      ]}
-    />
-  )
-}
-
 const Userdescription = `
-我是 Vaebe，我的主要技术栈是 Vue 全家桶，目前也在使用 React 来构建项目，比如这个博客它使用 Next.js。
-我会将自己的实践过程以文章的形式分享在掘金上，并在 GitHub上参与开源项目，不断提升自己的编程技能。
-欢迎访问我的掘金主页和 GitHub主页，了解更多关于我的信息！`
+我是 John, 游戏后端开发, 参与过30w同时在线游戏的开发, 主要使用Golang.`
 
 // 主要用户信息组件
 const UserInfo = ({ githubUserInfo }: { githubUserInfo?: GithubUserInfo }) => (
@@ -148,9 +66,16 @@ export async function UserProfile() {
     <div key="content" className="space-y-8">
       <UserInfo githubUserInfo={githubUserInfo} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <JuejinSocialStatsSection></JuejinSocialStatsSection>
-        <GitHubSocialStatsSection info={githubUserInfo}></GitHubSocialStatsSection>
+      <div className="flex justify-center">
+        <Link
+          href={SOCIAL_LINKS.github.url}
+          className="inline-flex items-center px-4 py-2 bg-gray-800 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors duration-300"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <Icon icon={SOCIAL_LINKS.github.icon} className="mr-2" />
+          {SOCIAL_LINKS.github.label}
+        </Link>
       </div>
     </div>
   )

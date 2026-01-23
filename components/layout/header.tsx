@@ -21,10 +21,18 @@ import { usePathname } from 'next/navigation'
 
 function NavList() {
   const pathname = usePathname()
+  const { data: _, status } = useSession()
+
+  // 过滤掉需要登录才能访问的路由
+  const filteredRouterList = routerList.filter(item => {
+    const restrictedPaths = ['/traffic-management-page', '/traffic-stats-page'];
+    // 如果是受限路径且用户未登录，则不显示
+    return !(restrictedPaths.includes(item.path) && status !== 'authenticated');
+  });
 
   return (
     <ul className="flex space-x-1">
-      {routerList.map((item) => (
+      {filteredRouterList.map((item) => (
         <li key={item.path}>
           <Link
             href={item.path}
