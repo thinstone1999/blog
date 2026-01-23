@@ -44,6 +44,11 @@ const nextConfig: NextConfig = {
 
     return config
   },
+
+  outputFileTracingIncludes: {
+      '/api/*': ['./node_modules/.prisma/client/*.wasm']
+    },
+  
 }
 
 export default nextConfig
