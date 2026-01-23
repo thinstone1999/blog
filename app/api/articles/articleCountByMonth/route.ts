@@ -3,18 +3,37 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET() {
   try {
-    const list = await prisma.$queryRaw<{ month: string; count: number }[]>`
-    SELECT DATE_FORMAT(createdAt, '%Y-%m') AS month, COUNT(*) AS count
-    FROM article
-    WHERE isDeleted = 0
-    GROUP BY month
-    ORDER BY month ASC;
-  `
+    // 使用 Prisma 的聚合查询功能来按月统计文章数量
+    const articles = await prisma.article.findMany({
+      where: {
+        isDeleted: 0
+      },
+      select: {
+        createdAt: true
+      }
+    })
 
-    const formattedCounts = list.map((item) => ({
-      month: item.month,
-      count: Number(item.count)
-    }))
+    // 按月份分组统计
+    const monthlyCounts: Record<string, number> = {}
+
+    articles.forEach(article => {
+      const date = new Date(article.createdAt)
+      const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+
+      if (monthlyCounts[month]) {
+        monthlyCounts[month]++
+      } else {
+        monthlyCounts[month] = 1
+      }
+    })
+
+    // 转换为数组并按月份排序
+    const formattedCounts = Object.entries(monthlyCounts)
+      .map(([month, count]) => ({
+        month,
+        count
+      }))
+      .sort((a, b) => a.month.localeCompare(b.month))
 
     return sendJson({ data: formattedCounts })
   } catch (error) {
