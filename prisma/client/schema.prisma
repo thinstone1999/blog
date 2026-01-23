@@ -1,6 +1,6 @@
 generator client {
   provider      = "prisma-client-js"
-  output = "./client" // update this if needed
+  output        = "./client" // update this if needed
   binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
@@ -17,7 +17,7 @@ model Article {
   classify   String?
   coverImg   String?
   summary    String
-  source     String?   // 00 博客创建 01 掘金同步
+  source     String? // 00 博客创建 01 掘金同步
   views      Int       @default(1)
   likes      Int       @default(1)
   favorites  Int       @default(1)
@@ -146,7 +146,7 @@ model CacheData {
   id        String    @id @default(auto()) @map("_id") @db.ObjectId
   key       String    @unique // 存储数据的 key
   data      String    @db.String // 存储的数据 文本 或 json 字符串
-  desc      String    // 存储数据的描述
+  desc      String // 存储数据的描述
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime? // 删除时间
@@ -156,22 +156,22 @@ model CacheData {
 
 // =============================== 流量管理 ===============================
 model TrafficData {
-  id        String           @id @default(auto()) @map("_id") @db.ObjectId
-  category  TrafficCategory  @relation(fields: [categoryId], references: [id])
+  id         String          @id @default(auto()) @map("_id") @db.ObjectId
+  category   TrafficCategory @relation(fields: [categoryId], references: [id])
   categoryId String          @db.ObjectId // 关联到 TrafficCategory 的 ID
-  amount    Float            // 数量
-  date      String           // 日期格式 YYYY-MM
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
+  amount     Float // 数量
+  date       String // 日期格式 YYYY-MM
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
 
   @@map("traffic_data")
 }
 
 model TrafficCategory {
-  id        String        @id @default(auto()) @map("_id") @db.ObjectId
-  name      String        // 类别名称
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String // 类别名称
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // 关联到 TrafficData
   trafficData TrafficData[]
