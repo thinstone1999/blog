@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import type { TrafficData, TrafficCategory } from '../prisma/client'
+import type { TrafficData, TrafficCategory } from '@prisma/client'
 import type { ApiRes } from '@/lib/utils'
 
 // 定义流量数据类型

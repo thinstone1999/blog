@@ -17,6 +17,7 @@ next-auth: 实现 github 登录、邮箱登录、账号密码登录功能
 ### 1. 环境准备
 
 确保您的系统已安装以下软件：
+
 - [Node.js](https://nodejs.org/) (推荐版本 18.x 或更高)
 - [pnpm](https://pnpm.io/) (推荐使用 pnpm 进行包管理)
 - [MongoDB](https://www.mongodb.com/) (本地或云端数据库)
@@ -74,6 +75,8 @@ npx prisma generate
 ```bash
 # 将 schema 推送到数据库
 npx prisma db push
+
+npx tsc --noEmit --incremental
 ```
 
 ### 8. 启动开发服务器
