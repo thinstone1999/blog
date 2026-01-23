@@ -33,7 +33,22 @@ const nextConfig: NextConfig = {
         destination: '/api/feed.xml'
       }
     ]
-  }
+  },
+
+  webpack: (config: any, { isServer }: { isServer: boolean }) => {
+    if (isServer && process.env.NODE_ENV === 'production') {
+      // @ts-ignore
+      const { PrismaPlugin } = require('@prisma/nextjs-monorepo-workaround-plugin')
+      config.plugins = [...config.plugins, new PrismaPlugin()]
+    }
+
+    return config
+  },
+
+  outputFileTracingIncludes: {
+      '/api/*': ['./node_modules/.prisma/client/*.wasm']
+    },
+  
 }
 
 export default nextConfig
