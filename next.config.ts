@@ -36,4 +36,7 @@ const nextConfig: NextConfig = {
   }
 }
 
+// 注意：在Vercel部署时，如果遇到Prisma Query Engine问题，
+// 请使用环境变量 PRISMA_GENERATE_CLIENT=1 来确保正确生成客户端
+
 export default nextConfig
