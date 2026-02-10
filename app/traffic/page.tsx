@@ -111,17 +111,32 @@ export default function TrafficManagementPage() {
 
   // 导入导出功能
   const exportData = () => {
-    // 创建CSV内容
-    let csvContent = 'id,category,amount,date\n' // 表头
+    // 获取所有唯一的时间段和类别
+    const uniqueDates = Array.from(new Set(trafficData.map((item) => item.date))).sort()
+    const uniqueCategoryIds = Array.from(new Set(trafficData.map((item) => item.categoryId)))
 
-    // 添加流量数据
-    trafficData.forEach((item) => {
-      // 获取类别名称
-      const category = categories.find((cat) => cat.id === item.categoryId)
-      const categoryName = category ? category.name : item.categoryId
+    // 获取类别名称映射
+    const categoryNames = uniqueCategoryIds.map((catId) => {
+      const category = categories.find((cat) => cat.id === catId)
+      return category ? category.name : catId
+    })
 
-      // 添加数据行，处理可能包含逗号的值
-      csvContent += `"${item.id}","${categoryName}","${item.amount}","${item.date}"\n`
+    // 创建CSV内容 - 表头
+    let csvContent = '年月,' + categoryNames.join(',') + '\n'
+
+    // 为每个时间段创建一行数据
+    uniqueDates.forEach((date) => {
+      const rowValues = [date] // 第一列是年月
+
+      // 对于每个类别，找到对应的金额，如果没有则为0
+      uniqueCategoryIds.forEach((catId) => {
+        const dataEntry = trafficData.find(
+          (item) => item.date === date && item.categoryId === catId
+        )
+        rowValues.push(dataEntry ? String(dataEntry.amount) : '0')
+      })
+
+      csvContent += rowValues.map((value) => `"${value}"`).join(',') + '\n'
     })
 
     // 创建Blob对象并下载
@@ -157,18 +172,113 @@ export default function TrafficManagementPage() {
           return
         }
 
+        // 解析表头 - 获取类别名称
+        const headerLine = lines[0].trim()
+        if (!headerLine.startsWith('年月')) {
+          toast.error('CSV文件格式不正确，应以"年月"作为第一列')
+          return
+        }
+
+        // 处理表头行，提取类别名称
+        const headerValues: string[] = []
+        let currentValue = ''
+        let insideQuotes = false
+
+        for (let j = 0; j < headerLine.length; j++) {
+          const char = headerLine[j]
+
+          if (char === '"') {
+            if (insideQuotes && j + 1 < headerLine.length && headerLine[j + 1] === '"') {
+              // 处理双引号转义
+              currentValue += '"'
+              j++ // 跳过下一个引号
+            } else {
+              // 切换引号状态
+              insideQuotes = !insideQuotes
+            }
+          } else if (char === ',' && !insideQuotes) {
+            headerValues.push(currentValue.trim().replace(/^"|"$/g, '')) // 移除首尾引号
+            currentValue = ''
+          } else {
+            currentValue += char
+          }
+        }
+
+        // 添加最后一个值
+        headerValues.push(currentValue.trim().replace(/^"|"$/g, ''))
+
+        if (headerValues.length < 2) {
+          toast.error('CSV文件至少需要包含年月和一个类别')
+          return
+        }
+
+        // 第一个值应该是"年月"，其余是类别名称
+        const categoryNames = headerValues.slice(1) // 排除第一个"年月"列
+
         // 解析数据行
         const newTrafficData: TrafficData[] = []
         const newCategoriesMap: { [name: string]: string } = {}
 
+        // 先收集所有唯一的类别名称
+        const uniqueCategoryNames = Array.from(new Set(categoryNames))
+
+        // 先处理所有类别，确保类别存在后再处理数据
+        const categoryPromises: Promise<void>[] = []
+
+        // 遍历所有唯一类别名称，处理类别创建
+        for (const categoryName of uniqueCategoryNames) {
+          // 如果类别还没有被处理过，添加到待处理列表
+          if (!newCategoriesMap[categoryName]) {
+            const existingCategory = categories.find((cat) => cat.name === categoryName)
+            if (existingCategory) {
+              // 类别已存在
+              newCategoriesMap[categoryName] = existingCategory.id
+            } else {
+              // 需要创建新类别
+              const promise = createTrafficCategory({ name: categoryName })
+                .then((categoryResult) => {
+                  if (categoryResult.code === 0 && categoryResult.data) {
+                    newCategoriesMap[categoryName] = categoryResult.data.id
+                    // 更新本地类别状态
+                    setCategories((prev) => [...prev, categoryResult.data as TrafficCategoryType])
+                  } else {
+                    // 如果创建失败，尝试再次查找现有类别
+                    const existing = categories.find((cat) => cat.name === categoryName)
+                    if (existing) {
+                      newCategoriesMap[categoryName] = existing.id
+                    } else {
+                      // 如果还是找不到，创建临时ID
+                      const tempId =
+                        'temp_' +
+                        Date.now().toString() +
+                        '_' +
+                        Math.random().toString(36).substr(2, 5)
+                      newCategoriesMap[categoryName] = tempId
+                    }
+                  }
+                })
+                .catch((error) => {
+                  console.error('创建类别失败:', error)
+                  // 如果创建失败，创建临时ID
+                  const tempId =
+                    'temp_' + Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5)
+                  newCategoriesMap[categoryName] = tempId
+                })
+
+              categoryPromises.push(promise)
+            }
+          }
+        }
+
+        // 现在处理数据行
         for (let i = 1; i < lines.length; i++) {
           const line = lines[i].trim()
           if (!line) continue // 跳过空行
 
-          // 处理可能包含引号和逗号的值
+          // 解析数据行
           const values: string[] = []
-          let currentValue = ''
-          let insideQuotes = false
+          currentValue = ''
+          insideQuotes = false
 
           for (let j = 0; j < line.length; j++) {
             const char = line[j]
@@ -193,56 +303,44 @@ export default function TrafficManagementPage() {
           // 添加最后一个值
           values.push(currentValue.trim().replace(/^"|"$/g, ''))
 
-          // 确保有足够的值
-          if (values.length >= 4) {
-            // 查找或创建类别
-            let categoryId = newCategoriesMap[values[1]] // values[1] 是类别名称
-            if (!categoryId) {
-              // 检查是否已存在于现有类别中
-              const existingCategory = categories.find((cat) => cat.name === values[1])
-              if (existingCategory) {
-                categoryId = existingCategory.id
-              } else {
-                // 创建新类别
-                createTrafficCategory({ name: values[1] })
-                  .then((categoryResult) => {
-                    if (categoryResult.code === 0 && categoryResult.data) {
-                      categoryId = categoryResult.data.id
-                      // 更新本地类别状态
-                      setCategories((prev) => [...prev, categoryResult.data as TrafficCategoryType])
-                    } else {
-                      // 如果创建失败，尝试查找现有类别
-                      const existing = categories.find((cat) => cat.name === values[1])
-                      if (existing) {
-                        categoryId = existing.id
-                      } else {
-                        // 如果还是找不到，创建临时ID
-                        categoryId = Date.now().toString() + Math.random().toString(36).substr(2, 5)
-                      }
-                    }
+          if (values.length !== headerValues.length) {
+            console.warn(`跳过格式不正确的行: ${line}`)
+            continue
+          }
 
-                    newCategoriesMap[values[1]] = categoryId
-                  })
-                  .catch((error) => {
-                    console.error('创建类别失败:', error)
-                    // 如果创建失败，创建临时ID
-                    categoryId = Date.now().toString() + Math.random().toString(36).substr(2, 5)
-                    newCategoriesMap[values[1]] = categoryId
-                  })
-              }
+          // 第一个值是日期（年月）
+          const date = values[0]
+
+          // 遍历每个类别及其对应的值
+          for (let j = 0; j < categoryNames.length; j++) {
+            const categoryName = categoryNames[j]
+            const amountStr = values[j + 1] // +1 因为第一个是日期
+
+            // 跳过空值或零值
+            if (!amountStr || parseFloat(amountStr) === 0) {
+              continue
             }
+
+            const amount = parseFloat(amountStr)
+            if (isNaN(amount)) {
+              console.warn(`无效的数值: ${amountStr}`)
+              continue
+            }
+
+            // 获取类别ID（此时应该已经处理过了）
+            const categoryId = newCategoriesMap[categoryName]
 
             // 创建流量数据项
             const newItem: TrafficData = {
-              id: values[0],
+              id: 'data_' + Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5), // 生成唯一ID
               categoryId: categoryId,
-              amount: parseFloat(values[2]),
-              date: values[3],
+              amount: amount,
+              date: date,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
               categoryInfo: {
                 id: categoryId,
-                name: values[1],
+                name: categoryName,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
               }
@@ -252,41 +350,166 @@ export default function TrafficManagementPage() {
           }
         }
 
-        // 将解析的数据逐个保存到数据库
-        let successCount = 0
-        let processedCount = 0
+        // 等待所有类别处理完成
+        Promise.all(categoryPromises)
+          .then(() => {
+            // 现在处理数据行
+            for (let i = 1; i < lines.length; i++) {
+              const line = lines[i].trim()
+              if (!line) continue // 跳过空行
 
-        if (newTrafficData.length === 0) {
-          toast.info('没有找到有效的数据行')
-          return
-        }
+              // 解析数据行
+              const values: string[] = []
+              currentValue = ''
+              insideQuotes = false
 
-        newTrafficData.forEach((item) => {
-          createTrafficData({
-            categoryId: item.categoryId,
-            amount: item.amount,
-            date: item.date
+              for (let j = 0; j < line.length; j++) {
+                const char = line[j]
+
+                if (char === '"') {
+                  if (insideQuotes && j + 1 < line.length && line[j + 1] === '"') {
+                    // 处理双引号转义
+                    currentValue += '"'
+                    j++ // 跳过下一个引号
+                  } else {
+                    // 切换引号状态
+                    insideQuotes = !insideQuotes
+                  }
+                } else if (char === ',' && !insideQuotes) {
+                  values.push(currentValue.trim().replace(/^"|"$/g, '')) // 移除首尾引号
+                  currentValue = ''
+                } else {
+                  currentValue += char
+                }
+              }
+
+              // 添加最后一个值
+              values.push(currentValue.trim().replace(/^"|"$/g, ''))
+
+              if (values.length !== headerValues.length) {
+                console.warn(`跳过格式不正确的行: ${line}`)
+                continue
+              }
+
+              // 第一个值是日期（年月）
+              const date = values[0]
+
+              // 遍历每个类别及其对应的值
+              for (let j = 0; j < categoryNames.length; j++) {
+                const categoryName = categoryNames[j]
+                const amountStr = values[j + 1] // +1 因为第一个是日期
+
+                // 跳过空值或零值
+                if (!amountStr || parseFloat(amountStr) === 0) {
+                  continue
+                }
+
+                const amount = parseFloat(amountStr)
+                if (isNaN(amount)) {
+                  console.warn(`无效的数值: ${amountStr}`)
+                  continue
+                }
+
+                // 获取类别ID（此时应该已经处理过了）
+                const categoryId = newCategoriesMap[categoryName]
+
+                // 创建流量数据项
+                const newItem: TrafficData = {
+                  id:
+                    'data_' + Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5), // 生成唯一ID
+                  categoryId: categoryId,
+                  amount: amount,
+                  date: date,
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                  categoryInfo: {
+                    id: categoryId,
+                    name: categoryName,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                  }
+                }
+
+                newTrafficData.push(newItem)
+              }
+            }
+
+            // 将解析的数据逐个保存到数据库
+            let successCount = 0
+            let processedCount = 0
+
+            if (newTrafficData.length === 0) {
+              toast.info('没有找到有效的数据行')
+              return
+            }
+
+            // 去重：根据categoryId、date和amount组合去重
+            const uniqueTrafficData = newTrafficData.filter(
+              (item, index, self) =>
+                index ===
+                self.findIndex(
+                  (t) =>
+                    t.categoryId === item.categoryId &&
+                    t.date === item.date &&
+                    t.amount === item.amount
+                )
+            )
+
+            uniqueTrafficData.forEach((item) => {
+              // 检查数据库中是否已存在相同数据
+              const existingData = trafficData.find(
+                (t) =>
+                  t.categoryId === item.categoryId &&
+                  t.date === item.date &&
+                  t.amount === item.amount
+              )
+
+              if (existingData) {
+                // 如果数据已存在，跳过
+                processedCount++
+                if (processedCount === uniqueTrafficData.length) {
+                  // 所有数据处理完成，重新加载数据
+                  loadTrafficData()
+                  loadCategories()
+                  toast.success(
+                    `成功导入 ${successCount}/${uniqueTrafficData.length} 条数据（已跳过重复数据）`
+                  )
+                }
+                return
+              }
+
+              createTrafficData({
+                categoryId: item.categoryId,
+                amount: item.amount,
+                date: item.date
+              })
+                .then((result) => {
+                  if (result.code === 0) {
+                    successCount++
+                  } else {
+                    console.error(`保存流量数据失败: ${result.msg} ${item}`)
+                  }
+                })
+                .catch((error) => {
+                  console.error(`保存流量数据时出错:`, error)
+                })
+                .finally(() => {
+                  processedCount++
+                  if (processedCount === uniqueTrafficData.length) {
+                    // 所有数据处理完成，重新加载数据
+                    loadTrafficData()
+                    loadCategories()
+                    toast.success(
+                      `成功导入 ${successCount}/${uniqueTrafficData.length} 条数据（已跳过重复数据）`
+                    )
+                  }
+                })
+            })
           })
-            .then((result) => {
-              if (result.code === 0) {
-                successCount++
-              } else {
-                console.error(`保存流量数据失败: ${result.msg}`)
-              }
-            })
-            .catch((error) => {
-              console.error(`保存流量数据时出错:`, error)
-            })
-            .finally(() => {
-              processedCount++
-              if (processedCount === newTrafficData.length) {
-                // 所有数据处理完成，重新加载数据
-                loadTrafficData()
-                loadCategories()
-                toast.success(`成功导入 ${successCount}/${newTrafficData.length} 条数据`)
-              }
-            })
-        })
+          .catch((error) => {
+            console.error('处理类别时出错:', error)
+            toast.error('处理类别时出错，请重试')
+          })
       } catch (error) {
         console.error('导入数据失败:', error)
         toast.error('导入数据失败，请检查文件格式')

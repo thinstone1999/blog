@@ -53,8 +53,21 @@ export default function TrafficStatsPage() {
   }>({}) // 每个类别每月的数据
   const [categories, setCategories] = useState<TrafficCategoryType[]>([])
 
-  // 年份范围（过去5年）
-  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 4 + i)
+  // 动态获取所有有数据的年份
+  const [allYears, setAllYears] = useState<number[]>([])
+
+  // 更新年份列表
+  useEffect(() => {
+    const availableYearsSet = new Set<number>()
+    trafficData.forEach((item) => {
+      const [yearStr] = item.date.split('-')
+      const yearNum = Number(yearStr)
+      availableYearsSet.add(yearNum)
+    })
+
+    const availableYears = Array.from(availableYearsSet).sort((a, b) => b - a) // 降序排列
+    setAllYears(availableYears)
+  }, [trafficData])
 
   // 从数据库加载流量数据和类别
   useEffect(() => {
@@ -207,12 +220,22 @@ export default function TrafficStatsPage() {
       setCategoryTotals(categoryData)
       setCategoryDailyData(finalCategoryMonthlyData) // 存储截断后的类别月度数据
     } else if (viewMode === 'year') {
-      // 年度视图：聚合所有年份的数据，只显示有数据的年份
-      // 首先找出所有有数据的年份
+      // 年度视图：获取每年最后一个月的数据，总量为当年最后一个月各类别相加
+      // 首先找出所有有数据的年份和每个月份
       const availableYears = new Set<number>()
+      const yearMonthMap: { [year: number]: Set<number> } = {}
+
       trafficData.forEach((item) => {
-        const [year] = item.date.split('-').map(Number)
-        availableYears.add(year)
+        const [yearStr, monthStr] = item.date.split('-')
+        const yearNum = Number(yearStr)
+        const monthNum = Number(monthStr)
+
+        availableYears.add(yearNum)
+
+        if (!yearMonthMap[yearNum]) {
+          yearMonthMap[yearNum] = new Set<number>()
+        }
+        yearMonthMap[yearNum].add(monthNum)
       })
 
       // 按年份聚合数据
@@ -220,30 +243,44 @@ export default function TrafficStatsPage() {
       const categoryYearlyData: { [key: string]: { [key: number]: number } } = {}
       const categoryData: { [key: string]: number } = {}
 
+      // 找出每年最后一个月
+      const lastMonthsPerYear: { [year: number]: number } = {}
+      Object.keys(yearMonthMap).forEach((yearStr) => {
+        const year = parseInt(yearStr)
+        const months = Array.from(yearMonthMap[year]).sort((a, b) => b - a) // 降序排列
+        lastMonthsPerYear[year] = months[0] // 最大月份即为最后一个月
+      })
+
       trafficData.forEach((item) => {
-        const [yearStr] = item.date.split('-')
+        const [yearStr, monthStr] = item.date.split('-')
         const yearNum = Number(yearStr)
+        const monthNum = Number(monthStr)
 
         // 只处理有数据的年份
         if (availableYears.has(yearNum)) {
-          // 累加到对应年份
-          if (!yearlyData[yearNum]) {
-            yearlyData[yearNum] = 0
+          // 只处理每年最后一个月的数据用于总量计算
+          if (monthNum === lastMonthsPerYear[yearNum]) {
+            // 累加到对应年份（只累加最后一个月的数据）
+            if (!yearlyData[yearNum]) {
+              yearlyData[yearNum] = 0
+            }
+            yearlyData[yearNum] += item.amount
           }
-          yearlyData[yearNum] += item.amount
 
           // 初始化类别年度数据对象
           if (!categoryYearlyData[item.categoryId]) {
             categoryYearlyData[item.categoryId] = {}
           }
 
-          // 累加对应类别的年度流量
-          if (!categoryYearlyData[item.categoryId][yearNum]) {
-            categoryYearlyData[item.categoryId][yearNum] = 0
+          // 只记录每年最后一个月的类别数据
+          if (monthNum === lastMonthsPerYear[yearNum]) {
+            if (!categoryYearlyData[item.categoryId][yearNum]) {
+              categoryYearlyData[item.categoryId][yearNum] = 0
+            }
+            categoryYearlyData[item.categoryId][yearNum] += item.amount
           }
-          categoryYearlyData[item.categoryId][yearNum] += item.amount
 
-          // 按类别累加
+          // 按类别累加（这里保持原有的年度总计逻辑）
           if (categoryData[item.categoryId]) {
             categoryData[item.categoryId] += item.amount
           } else {
@@ -256,10 +293,10 @@ export default function TrafficStatsPage() {
       const sortedYears = Array.from(availableYears).sort((a, b) => a - b)
       const yearlyAmounts: number[] = []
       sortedYears.forEach((year) => {
-        yearlyAmounts.push(yearlyData[year] || 0)
+        yearlyAmounts.push(yearlyData[year] || 0) // 这里现在是每年最后一个月的总量
       })
 
-      // 处理每个类别的年度数据
+      // 处理每个类别的年度数据（每年最后一个月的值）
       const processedCategoryYearlyData: { [key: string]: number[] } = {}
       Object.keys(categoryYearlyData).forEach((categoryId) => {
         processedCategoryYearlyData[categoryId] = []
@@ -268,7 +305,7 @@ export default function TrafficStatsPage() {
         })
       })
 
-      setDailyAmounts(yearlyAmounts) // 存储年度数据
+      setDailyAmounts(yearlyAmounts) // 存储年度数据（每年最后一个月的总量）
       setCategoryTotals(categoryData)
       setCategoryDailyData(processedCategoryYearlyData) // 存储年度数据
     }
@@ -465,7 +502,7 @@ export default function TrafficStatsPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {years.map((year) => (
+              {allYears.map((year) => (
                 <SelectItem key={year} value={String(year)}>
                   {year}年
                 </SelectItem>
@@ -493,7 +530,7 @@ export default function TrafficStatsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 gap-6 mb-6">
         {/* 按日期的折线图 */}
         <Card>
           <CardHeader>
@@ -507,22 +544,6 @@ export default function TrafficStatsPage() {
             ) : (
               <div className="flex items-center justify-center h-64">
                 <p>暂无数据，请在流量管理页面添加数据</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* 按类别的饼图 */}
-        <Card>
-          <CardHeader>
-            <CardTitle>各类别流量占比</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {Object.keys(categoryTotals).length > 0 ? (
-              <Pie data={categoryChartData} options={pieOptions} />
-            ) : (
-              <div className="flex items-center justify-center h-64">
-                <p>暂无分类数据，请在流量管理页面添加数据</p>
               </div>
             )}
           </CardContent>
