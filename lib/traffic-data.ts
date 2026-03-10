@@ -1,10 +1,13 @@
 import type { ApiRes } from './utils'
-import type { TrafficDataWithCategory, TrafficCategoryType } from '@/types/traffic'
+import type { TrafficRecord } from '@/types/traffic'
 
-// 客户端API调用函数
-export async function createTrafficData(
-  props: { categoryId: string; amount: number; date: string }
-): Promise<ApiRes<TrafficDataWithCategory>> {
+// ==================== 流量记录操作 ====================
+
+// 创建或更新流量记录
+export async function upsertTrafficRecord(
+  date: string,
+  data: Record<string, number>
+): Promise<ApiRes<TrafficRecord>> {
   try {
     const response = await fetch('/api/traffic-data', {
       method: 'POST',
@@ -12,68 +15,49 @@ export async function createTrafficData(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        action: 'createTrafficData',
-        ...props
-      })
-    });
-
-    return await response.json();
-  } catch (error) {
-    console.error('创建流量数据失败:', error);
-    return { code: -1, msg: `创建流量数据失败：${error}` };
-  }
-}
-
-export async function getAllTrafficData(): Promise<ApiRes<TrafficDataWithCategory[]>> {
-  try {
-    const response = await fetch(`/api/traffic-data?action=getAllTrafficData`, {
-      method: 'GET',
-    });
-
-    return await response.json();
-  } catch (error) {
-    console.error('获取流量数据失败:', error);
-    return { code: -1, msg: `获取流量数据失败：${error}` };
-  }
-}
-
-export async function getTrafficDataByYear(year: string): Promise<ApiRes<TrafficDataWithCategory[]>> {
-  try {
-    const response = await fetch(`/api/traffic-data?action=getTrafficDataByYear&year=${year}`, {
-      method: 'GET',
-    });
-
-    return await response.json();
-  } catch (error) {
-    console.error('获取流量数据失败:', error);
-    return { code: -1, msg: `获取流量数据失败：${error}` };
-  }
-}
-
-export async function updateTrafficData(id: string, amount: number, date: string, categoryId: string): Promise<ApiRes<TrafficDataWithCategory>> {
-  try {
-    const response = await fetch('/api/traffic-data', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        action: 'updateTrafficData',
-        id,
-        amount,
+        action: 'upsertTrafficRecord',
         date,
-        categoryId
+        data
       })
     });
 
     return await response.json();
   } catch (error) {
-    console.error('更新流量数据失败:', error);
-    return { code: -1, msg: `更新流量数据失败：${error}` };
+    console.error('保存流量记录失败:', error);
+    return { code: -1, msg: `保存流量记录失败：${error}` };
   }
 }
 
-export async function deleteTrafficData(id: string): Promise<ApiRes> {
+// 获取所有流量记录
+export async function getAllTrafficRecords(): Promise<ApiRes<TrafficRecord[]>> {
+  try {
+    const response = await fetch(`/api/traffic-data?action=getAllTrafficRecords`, {
+      method: 'GET',
+    });
+
+    return await response.json();
+  } catch (error) {
+    console.error('获取流量记录失败:', error);
+    return { code: -1, msg: `获取流量记录失败：${error}` };
+  }
+}
+
+// 按年份获取流量记录
+export async function getTrafficRecordsByYear(year: string): Promise<ApiRes<TrafficRecord[]>> {
+  try {
+    const response = await fetch(`/api/traffic-data?action=getTrafficRecordsByYear&year=${year}`, {
+      method: 'GET',
+    });
+
+    return await response.json();
+  } catch (error) {
+    console.error('获取流量记录失败:', error);
+    return { code: -1, msg: `获取流量记录失败：${error}` };
+  }
+}
+
+// 删除流量记录
+export async function deleteTrafficRecord(date: string): Promise<ApiRes> {
   try {
     const response = await fetch('/api/traffic-data', {
       method: 'DELETE',
@@ -81,21 +65,22 @@ export async function deleteTrafficData(id: string): Promise<ApiRes> {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        action: 'deleteTrafficData',
-        id
+        action: 'deleteTrafficRecord',
+        date
       })
     });
 
     return await response.json();
   } catch (error) {
-    console.error('删除流量数据失败:', error);
-    return { code: -1, msg: `删除流量数据失败：${error}` };
+    console.error('删除流量记录失败:', error);
+    return { code: -1, msg: `删除流量记录失败：${error}` };
   }
 }
 
-export async function createTrafficCategory(
-  props: { name: string }
-): Promise<ApiRes<TrafficCategoryType>> {
+// 批量导入流量记录
+export async function importTrafficRecords(
+  records: Array<{ date: string; data: Record<string, number> }>
+): Promise<ApiRes<{ imported: number; updated: number }>> {
   try {
     const response = await fetch('/api/traffic-data', {
       method: 'POST',
@@ -103,19 +88,20 @@ export async function createTrafficCategory(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        action: 'createCategory',
-        ...props
+        action: 'importTrafficRecords',
+        records
       })
     });
 
     return await response.json();
   } catch (error) {
-    console.error('创建流量类别失败:', error);
-    return { code: -1, msg: `创建流量类别失败：${error}` };
+    console.error('批量导入流量记录失败:', error);
+    return { code: -1, msg: `批量导入流量记录失败：${error}` };
   }
 }
 
-export async function getAllTrafficCategories(): Promise<ApiRes<TrafficCategoryType[]>> {
+// 获取所有类别（从数据中动态提取）
+export async function getAllCategories(): Promise<ApiRes<string[]>> {
   try {
     const response = await fetch(`/api/traffic-data?action=getAllCategories`, {
       method: 'GET',
@@ -123,48 +109,16 @@ export async function getAllTrafficCategories(): Promise<ApiRes<TrafficCategoryT
 
     return await response.json();
   } catch (error) {
-    console.error('获取流量类别失败:', error);
-    return { code: -1, msg: `获取流量类别失败：${error}` };
+    console.error('获取类别失败:', error);
+    return { code: -1, msg: `获取类别失败：${error}` };
   }
 }
 
-export async function updateTrafficCategory(id: string, name: string): Promise<ApiRes<TrafficCategoryType>> {
-  try {
-    const response = await fetch('/api/traffic-data', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        action: 'updateCategory',
-        id,
-        name
-      })
-    });
-
-    return await response.json();
-  } catch (error) {
-    console.error('更新流量类别失败:', error);
-    return { code: -1, msg: `更新流量类别失败：${error}` };
-  }
+// 兼容旧 API
+export async function getAllTrafficData(): Promise<ApiRes<TrafficRecord[]>> {
+  return getAllTrafficRecords();
 }
 
-export async function deleteTrafficCategory(id: string): Promise<ApiRes> {
-  try {
-    const response = await fetch('/api/traffic-data', {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        action: 'deleteCategory',
-        id
-      })
-    });
-
-    return await response.json();
-  } catch (error) {
-    console.error('删除流量类别失败:', error);
-    return { code: -1, msg: `删除流量类别失败：${error}` };
-  }
+export async function getTrafficDataByYear(year: string): Promise<ApiRes<TrafficRecord[]>> {
+  return getTrafficRecordsByYear(year);
 }

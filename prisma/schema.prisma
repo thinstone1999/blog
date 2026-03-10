@@ -155,26 +155,14 @@ model CacheData {
 }
 
 // =============================== 流量管理 ===============================
-model TrafficData {
-  id        String           @id @default(auto()) @map("_id") @db.ObjectId
-  category  TrafficCategory  @relation(fields: [categoryId], references: [id])
-  categoryId String          @db.ObjectId // 关联到 TrafficCategory 的 ID
-  amount    Float            // 数量
-  date      String           // 日期格式 YYYY-MM
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
+// 流量记录：每个文档代表一个月份，包含所有类别的金额数据
+// 类别从 data 字段的 keys 动态获取，无需单独存储
+model TrafficRecord {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  date      String   @unique  // YYYY-MM 格式
+  data      Json              // { "雪球": 105.6, "招商": 0, ... }
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@map("traffic_data")
-}
-
-model TrafficCategory {
-  id        String        @id @default(auto()) @map("_id") @db.ObjectId
-  name      String        // 类别名称
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-
-  // 关联到 TrafficData
-  trafficData TrafficData[]
-
-  @@map("traffic_category")
+  @@map("traffic_record")
 }
