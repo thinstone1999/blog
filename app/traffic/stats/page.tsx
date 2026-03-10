@@ -118,7 +118,7 @@ export default function TrafficStatsPage() {
 
   const { monthlyData, categoryMonthlyData, categoryTotals } = processData()
 
-  // 处理年度数据
+  // 处理年度数据（流量是累计值，年度总量取当年最后一个有数据的月份的值）
   const processYearlyData = () => {
     const availableYears = new Set<number>()
     trafficRecords.forEach(record => {
@@ -135,25 +135,35 @@ export default function TrafficStatsPage() {
       categoryYearlyData[cat] = Array(sortedYears.length).fill(0)
     })
 
-    // 按年份聚合数据
+    // 找出每年最后一个有数据的月份，取该月的值作为年度总量
     sortedYears.forEach((year, yearIndex) => {
-      let yearTotal = 0
+      // 找出该年所有记录，按月份排序
+      const yearRecords = trafficRecords
+        .filter(record => {
+          const [recordYear] = record.date.split('-')
+          return Number(recordYear) === year
+        })
+        .sort((a, b) => a.date.localeCompare(b.date))
 
-      trafficRecords.forEach(record => {
-        const [recordYear] = record.date.split('-')
-        if (Number(recordYear) === year) {
-          const data = record.data as Record<string, number>
-          Object.entries(data).forEach(([categoryName, amount]) => {
-            if (!categoryYearlyData[categoryName]) {
-              categoryYearlyData[categoryName] = Array(sortedYears.length).fill(0)
-            }
-            categoryYearlyData[categoryName][yearIndex] += amount
-            yearTotal += amount
-          })
-        }
-      })
+      // 取最后一个有数据的月份
+      const lastRecord = yearRecords[yearRecords.length - 1]
 
-      yearlyAmounts.push(yearTotal)
+      if (lastRecord) {
+        const data = lastRecord.data as Record<string, number>
+        let yearTotal = 0
+
+        Object.entries(data).forEach(([categoryName, amount]) => {
+          if (!categoryYearlyData[categoryName]) {
+            categoryYearlyData[categoryName] = Array(sortedYears.length).fill(0)
+          }
+          categoryYearlyData[categoryName][yearIndex] = amount
+          yearTotal += amount
+        })
+
+        yearlyAmounts.push(yearTotal)
+      } else {
+        yearlyAmounts.push(0)
+      }
     })
 
     return { sortedYears, yearlyAmounts, categoryYearlyData }
