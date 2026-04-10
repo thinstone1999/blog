@@ -22,7 +22,7 @@ export default function LayoutFooter() {
 
 function NavList() {
   const { data: session } = useSession()
-  const routes = getHeaderRoutes(session?.user?.role === '00')
+  const routes = getHeaderRoutes(Boolean(session?.user))
 
   return (
     <div>

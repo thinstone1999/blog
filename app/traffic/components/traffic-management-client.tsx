@@ -57,7 +57,7 @@ export function TrafficManagementClient({ initialRecords }: { initialRecords: Tr
 
   const exportData = () => {
     if (trafficRecords.length === 0) {
-      toast.error('No data to export.')
+      toast.error('没有数据可导出')
       return
     }
 
@@ -72,7 +72,7 @@ export function TrafficManagementClient({ initialRecords }: { initialRecords: Tr
     anchor.click()
     document.body.removeChild(anchor)
     URL.revokeObjectURL(url)
-    toast.success('Export completed.')
+    toast.success('导出成功')
   }
 
   const handleImport: React.ChangeEventHandler<HTMLInputElement> = (event) => {
@@ -86,7 +86,7 @@ export function TrafficManagementClient({ initialRecords }: { initialRecords: Tr
       try {
         const content = loadEvent.target?.result as string
         if (!content) {
-          toast.error('File content is empty.')
+          toast.error('文件内容为空')
           return
         }
 
@@ -94,7 +94,7 @@ export function TrafficManagementClient({ initialRecords }: { initialRecords: Tr
         const result = await importTrafficRecords(records)
 
         if (result.code !== 0) {
-          toast.error(`Import failed: ${result.msg}`)
+          toast.error(`导入失败：${result.msg}`)
           return
         }
 
@@ -118,11 +118,11 @@ export function TrafficManagementClient({ initialRecords }: { initialRecords: Tr
         })
 
         toast.success(
-          `Import completed: ${result.data?.imported ?? 0} created, ${result.data?.updated ?? 0} updated.`
+          `导入成功：新增 ${result.data?.imported ?? 0} 条，更新 ${result.data?.updated ?? 0} 条`
         )
       } catch (error) {
         console.error('Import traffic data failed:', error)
-        toast.error(error instanceof Error ? error.message : 'Import traffic data failed.')
+        toast.error(error instanceof Error ? error.message : '导入流量数据失败')
       } finally {
         event.target.value = ''
       }
@@ -133,18 +133,18 @@ export function TrafficManagementClient({ initialRecords }: { initialRecords: Tr
 
   const handleAddTraffic = async () => {
     if (!formData.year || !formData.month) {
-      toast.error('Please choose year and month.')
+      toast.error('请选择年份和月份')
       return
     }
 
     const data = parseTrafficJson(formData.jsonData)
     if (!data) {
-      toast.error('JSON format is invalid.')
+      toast.error('JSON 格式不正确')
       return
     }
 
     if (Object.keys(data).length === 0) {
-      toast.error('Data cannot be empty.')
+      toast.error('数据不能为空')
       return
     }
 
@@ -152,7 +152,7 @@ export function TrafficManagementClient({ initialRecords }: { initialRecords: Tr
     const result = await upsertTrafficRecord(date, data)
 
     if (result.code !== 0 || !result.data) {
-      toast.error(`Save failed: ${result.msg}`)
+      toast.error(`保存失败：${result.msg}`)
       return
     }
 
@@ -170,72 +170,72 @@ export function TrafficManagementClient({ initialRecords }: { initialRecords: Tr
       month: String(new Date().getMonth() + 1),
       jsonData: '{}'
     })
-    toast.success('Record saved.')
+    toast.success('保存成功')
   }
 
   const handleDeleteRecord = async (date: string) => {
     const result = await deleteTrafficRecord(date)
 
     if (result.code !== 0) {
-      toast.error(`Delete failed: ${result.msg}`)
+      toast.error(`删除失败：${result.msg}`)
       return
     }
 
     setTrafficRecords((prev) => prev.filter((record) => record.date !== date))
-    toast.success('Record deleted.')
+    toast.success('删除成功')
   }
 
   const handleSaveEdit = async (record: TrafficRecord) => {
     const data = parseTrafficJson(editingData)
     if (!data) {
-      toast.error('JSON format is invalid.')
+      toast.error('JSON 格式不正确')
       return
     }
 
     const result = await upsertTrafficRecord(record.date, data)
     if (result.code !== 0 || !result.data) {
-      toast.error(`Update failed: ${result.msg}`)
+      toast.error(`更新失败：${result.msg}`)
       return
     }
 
     setTrafficRecords((prev) => prev.map((item) => (item.id === record.id ? result.data! : item)))
     setEditingId(null)
     setEditingData('{}')
-    toast.success('Record updated.')
+    toast.success('更新成功')
   }
 
   return (
     <div className="mx-auto flex h-full w-full max-w-screen-xl flex-col p-4">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Traffic Management</h1>
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200">流量管理</h1>
         <div className="flex flex-wrap justify-end gap-3">
           <button
             onClick={exportData}
             className="flex min-w-[96px] items-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-sm text-white transition-colors duration-200 hover:bg-blue-600"
           >
             <Download className="h-4 w-4" />
-            Export CSV
+            导出 CSV
           </button>
           <button
             onClick={() => fileInputRef.current?.click()}
             className="flex min-w-[96px] items-center justify-center gap-2 rounded-lg bg-green-500 px-4 py-2 text-sm text-white transition-colors duration-200 hover:bg-green-600"
           >
             <Upload className="h-4 w-4" />
-            Import Data
+            导入数据
           </button>
           <Link
             href="/traffic/stats"
             className="flex items-center gap-2 rounded-lg bg-purple-500 px-4 py-2 text-sm text-white transition-colors duration-200 hover:bg-purple-600"
           >
             <ArrowLeft className="h-4 w-4" />
-            Traffic Stats
+            流量统计
           </Link>
           <Link
             href="/"
             className="flex items-center gap-2 rounded-lg bg-gray-500 px-4 py-2 text-sm text-white transition-colors duration-200 hover:bg-gray-600"
           >
             <ArrowLeft className="h-4 w-4" />
-            Home
+            返回首页
           </Link>
           <input ref={fileInputRef} type="file" accept=".csv" onChange={handleImport} className="hidden" />
         </div>
@@ -243,14 +243,14 @@ export function TrafficManagementClient({ initialRecords }: { initialRecords: Tr
 
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Add Record</CardTitle>
+          <CardTitle>添加流量记录</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="grid grid-cols-2 gap-4 lg:col-span-1">
               <div>
                 <Label className="mb-1 block text-sm font-medium text-gray-600 dark:text-gray-400">
-                  Year
+                  年份
                 </Label>
                 <Select
                   value={formData.year}
@@ -270,7 +270,7 @@ export function TrafficManagementClient({ initialRecords }: { initialRecords: Tr
               </div>
               <div>
                 <Label className="mb-1 block text-sm font-medium text-gray-600 dark:text-gray-400">
-                  Month
+                  月份
                 </Label>
                 <Select
                   value={formData.month}
@@ -292,21 +292,21 @@ export function TrafficManagementClient({ initialRecords }: { initialRecords: Tr
 
             <div className="lg:col-span-3">
               <Label className="mb-1 block text-sm font-medium text-gray-600 dark:text-gray-400">
-                Data (JSON)
+                数据（JSON 格式）
               </Label>
               <textarea
                 value={formData.jsonData}
                 onChange={(event) =>
                   setFormData((prev) => ({ ...prev, jsonData: event.target.value }))
                 }
-                placeholder='{"category": 105.6, "another": 0}'
+                placeholder='{"雪球": 105.6, "招商": 0}'
                 className="h-24 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 font-mono text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
               />
             </div>
 
             <div className="sm:col-span-2 lg:col-span-4">
               <Button onClick={handleAddTraffic} className="w-full bg-green-500 hover:bg-green-600 sm:w-auto">
-                Save Record
+                保存记录
               </Button>
             </div>
           </div>
@@ -316,7 +316,7 @@ export function TrafficManagementClient({ initialRecords }: { initialRecords: Tr
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle>Records</CardTitle>
+            <CardTitle>流量数据列表</CardTitle>
             <Select
               value={filterYear}
               onValueChange={(value) => {
@@ -328,7 +328,7 @@ export function TrafficManagementClient({ initialRecords }: { initialRecords: Tr
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Years</SelectItem>
+                <SelectItem value="all">全部年份</SelectItem>
                 {yearOptions.map((year) => (
                   <SelectItem key={year} value={year}>
                     {year}
@@ -341,11 +341,11 @@ export function TrafficManagementClient({ initialRecords }: { initialRecords: Tr
         <CardContent>
           {trafficRecords.length === 0 ? (
             <div className="flex h-64 items-center justify-center">
-              <p className="text-center text-gray-500 dark:text-gray-400">No data yet.</p>
+              <p className="text-center text-gray-500 dark:text-gray-400">暂无数据</p>
             </div>
           ) : filteredRecords.length === 0 ? (
             <div className="flex h-64 items-center justify-center">
-              <p className="text-center text-gray-500 dark:text-gray-400">No matching records.</p>
+              <p className="text-center text-gray-500 dark:text-gray-400">没有符合条件的数据</p>
             </div>
           ) : (
             <>
@@ -353,9 +353,9 @@ export function TrafficManagementClient({ initialRecords }: { initialRecords: Tr
                 <table className="w-full">
                   <thead>
                     <tr className="border-b">
-                      <th className="w-24 px-4 py-2 text-left">Date</th>
-                      <th className="px-4 py-2 text-left">Data</th>
-                      <th className="w-28 px-4 py-2 text-left">Actions</th>
+                      <th className="w-24 px-4 py-2 text-left">日期</th>
+                      <th className="px-4 py-2 text-left">数据</th>
+                      <th className="w-28 px-4 py-2 text-left">操作</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -403,7 +403,7 @@ export function TrafficManagementClient({ initialRecords }: { initialRecords: Tr
                                     setEditingData(JSON.stringify(record.data, null, 2))
                                   }}
                                 >
-                                  Edit
+                                  编辑
                                 </Button>
                                 <Button
                                   variant="destructive"
@@ -425,8 +425,8 @@ export function TrafficManagementClient({ initialRecords }: { initialRecords: Tr
               {totalPages > 1 && (
                 <div className="mt-6 flex flex-col items-center justify-between gap-4 border-t pt-4 sm:flex-row">
                   <div className="text-sm text-gray-600 dark:text-gray-400">
-                    Showing {startIndex + 1}-{Math.min(endIndex, filteredRecords.length)} of{' '}
-                    {filteredRecords.length}
+                    显示 {startIndex + 1}-{Math.min(endIndex, filteredRecords.length)} 条，共{' '}
+                    {filteredRecords.length} 条
                   </div>
                   <div className="flex items-center space-x-2">
                     <Button
@@ -434,7 +434,7 @@ export function TrafficManagementClient({ initialRecords }: { initialRecords: Tr
                       disabled={currentPage === 1}
                       variant="outline"
                     >
-                      Prev
+                      上一页
                     </Button>
                     {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
                       const pageNumber =
@@ -461,7 +461,7 @@ export function TrafficManagementClient({ initialRecords }: { initialRecords: Tr
                       disabled={currentPage === totalPages}
                       variant="outline"
                     >
-                      Next
+                      下一页
                     </Button>
                   </div>
                 </div>

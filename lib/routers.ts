@@ -22,7 +22,7 @@ export const publicRoutes: AppRouteItem[] = [
   }
 ]
 
-export const adminRoutes: AppRouteItem[] = [
+export const authenticatedRoutes: AppRouteItem[] = [
   {
     path: '/traffic',
     name: '流量管理',
@@ -35,6 +35,6 @@ export const adminRoutes: AppRouteItem[] = [
   }
 ]
 
-export function getHeaderRoutes(isAdmin: boolean) {
-  return isAdmin ? [...publicRoutes, ...adminRoutes] : publicRoutes
+export function getHeaderRoutes(isAuthenticated: boolean) {
+  return isAuthenticated ? [...publicRoutes, ...authenticatedRoutes] : publicRoutes
 }

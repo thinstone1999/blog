@@ -70,7 +70,7 @@ export function TrafficStatsClient({
 
   const labels =
     viewMode === 'month'
-      ? Array.from({ length: lastMonthWithData }, (_, index) => `M${index + 1}`)
+      ? Array.from({ length: lastMonthWithData }, (_, index) => `${index + 1}月`)
       : sortedYears.map((year) => String(year))
 
   const displayData = viewMode === 'month' ? monthlyData.slice(0, lastMonthWithData) : yearlyAmounts
@@ -95,7 +95,7 @@ export function TrafficStatsClient({
 
   if (categoryNames.length > 0) {
     datasets.push({
-      label: 'Total',
+      label: '总量',
       data: displayData,
       borderColor: 'rgb(54, 162, 235)',
       backgroundColor: 'rgba(54, 162, 235, 0.2)',
@@ -117,7 +117,7 @@ export function TrafficStatsClient({
       },
       title: {
         display: true,
-        text: viewMode === 'month' ? `${selectedYear} Monthly Traffic` : 'Traffic Trend by Year'
+        text: viewMode === 'month' ? `${selectedYear} 年度月度流量` : '历年流量趋势'
       }
     },
     scales: {
@@ -130,18 +130,18 @@ export function TrafficStatsClient({
   return (
     <div className="mx-auto flex h-full w-full max-w-screen-xl flex-col p-4">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold">Traffic Stats</h1>
+        <h1 className="text-2xl font-bold">流量统计</h1>
         <div className="flex flex-wrap justify-end gap-3">
           <Link href="/traffic">
             <Button className="flex items-center gap-2 bg-purple-500 hover:bg-purple-600">
               <ArrowLeft className="h-4 w-4" />
-              Management
+              流量管理
             </Button>
           </Link>
           <Link href="/">
             <Button className="flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
-              Home
+              返回首页
             </Button>
           </Link>
         </div>
@@ -165,15 +165,15 @@ export function TrafficStatsClient({
             </SelectContent>
           </Select>
         ) : (
-          <div className="text-sm text-gray-500">Showing all years with data</div>
+          <div className="text-sm text-gray-500">显示所有有数据的年份</div>
         )}
 
         <div className="flex space-x-2">
           <Button variant={viewMode === 'month' ? 'default' : 'outline'} onClick={() => setViewMode('month')}>
-            Monthly
+            月度视图
           </Button>
           <Button variant={viewMode === 'year' ? 'default' : 'outline'} onClick={() => setViewMode('year')}>
-            Yearly
+            年度视图
           </Button>
         </div>
       </div>
@@ -181,14 +181,14 @@ export function TrafficStatsClient({
       <div className="mb-6 grid grid-cols-1 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>{viewMode === 'month' ? 'Monthly Comparison' : 'Yearly Trend'}</CardTitle>
+            <CardTitle>{viewMode === 'month' ? '月度对比' : '年度趋势'}</CardTitle>
           </CardHeader>
           <CardContent>
             {categoryNames.length > 0 ? (
               <Line data={chartData} options={options} />
             ) : (
               <div className="flex h-64 items-center justify-center">
-                <p>No data yet. Add records from the management page first.</p>
+                <p>暂无数据，请先到流量管理页添加记录</p>
               </div>
             )}
           </CardContent>

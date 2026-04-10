@@ -16,6 +16,14 @@ import {
 import { LoginDialog } from '@/components/login-dialog'
 
 export function HeaderAuthAction({ session }: { session: Session | null }) {
+  async function handleSignOut() {
+    await signOut({
+      redirect: false
+    })
+
+    window.location.reload()
+  }
+
   if (!session?.user) {
     return (
       <LoginDialog>
@@ -54,7 +62,7 @@ export function HeaderAuthAction({ session }: { session: Session | null }) {
           </Link>
         )}
 
-        <DropdownMenuItem className="cursor-pointer" onClick={() => signOut()}>
+        <DropdownMenuItem className="cursor-pointer" onClick={handleSignOut}>
           <div className="flex items-center">
             <LogOut className="mx-2 h-5 w-5" />
             <span>退出登录</span>

@@ -7,7 +7,7 @@ export async function getAuthSession() {
   return getServerSession(authOptions)
 }
 
-export async function requireAdmin() {
+export async function requireAuth() {
   const session = await getAuthSession()
 
   if (!session?.user) {
@@ -15,6 +15,16 @@ export async function requireAdmin() {
       error: sendJson({ code: 401, msg: '请先登录' }),
       session: null
     }
+  }
+
+  return { error: null, session }
+}
+
+export async function requireAdmin() {
+  const { error, session } = await requireAuth()
+
+  if (error || !session) {
+    return { error, session: null }
   }
 
   if (session.user.role !== '00') {
@@ -25,6 +35,16 @@ export async function requireAdmin() {
   }
 
   return { error: null, session }
+}
+
+export async function requireAuthPage() {
+  const session = await getAuthSession()
+
+  if (!session?.user) {
+    redirect('/')
+  }
+
+  return session
 }
 
 export async function requireAdminPage() {

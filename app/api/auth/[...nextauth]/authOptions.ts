@@ -55,8 +55,12 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
-        const hashedInput = hashPassword(credentials.password)
-        if (hashedInput !== user.password) {
+        const incomingPassword = credentials.password
+        const hashedIncomingPassword = hashPassword(incomingPassword)
+        const isPasswordMatched =
+          incomingPassword === user.password || hashedIncomingPassword === user.password
+
+        if (!isPasswordMatched) {
           return null
         }
 

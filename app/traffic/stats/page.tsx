@@ -1,11 +1,11 @@
-import { requireAdminPage } from '@/lib/auth'
+import { requireAuthPage } from '@/lib/auth'
 import { getAllTrafficRecords } from '@/lib/services/traffic-data'
 import { serializeTrafficRecords } from '@/lib/services/traffic-record-transform'
 import { getTrafficCategories } from '@/lib/traffic-utils'
 import { TrafficStatsClient } from '@/app/traffic/stats/traffic-stats-client'
 
 export default async function TrafficStatsPage() {
-  await requireAdminPage()
+  await requireAuthPage()
   const records = serializeTrafficRecords(await getAllTrafficRecords())
   const categories = getTrafficCategories(records)
 
