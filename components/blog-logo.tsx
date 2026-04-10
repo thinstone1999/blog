@@ -1,6 +1,8 @@
-import { useTheme } from 'next-themes'
+'use client'
+
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
+import { useTheme } from 'next-themes'
 import LightLogo from '@/public/light-logo.svg'
 import DarkLogo from '@/public/dark-logo.svg'
 
@@ -10,7 +12,9 @@ function BlogLogo() {
 
   useEffect(() => setMounted(true), [])
 
-  if (!mounted) return null
+  if (!mounted) {
+    return null
+  }
 
   const currentTheme = theme === 'system' ? systemTheme : theme
   const logoSrc = currentTheme === 'dark' ? LightLogo : DarkLogo

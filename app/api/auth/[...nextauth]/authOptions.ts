@@ -1,10 +1,10 @@
-import type { AuthOptions } from 'next-auth'
+import type { NextAuthOptions } from 'next-auth'
 import GitHubProvider from 'next-auth/providers/github'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import EmailProvider from 'next-auth/providers/email'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from '@/lib/prisma'
-import { AnyObject } from '@/types'
+import { type AnyObject } from '@/types'
 import { generateUUID, hashPassword } from '@/lib/utils'
 
 const AUTH_GITHUB_CLIENT_ID = process.env.AUTH_GITHUB_CLIENT_ID
@@ -14,7 +14,6 @@ function createAvatar() {
   return `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${generateUUID()}&size=64`
 }
 
-// 更新用户头像-这里不走接口，更安全
 async function updateUserProfilePicture(user?: AnyObject) {
   if (!user) {
     return
@@ -34,7 +33,7 @@ async function updateUserProfilePicture(user?: AnyObject) {
   }
 }
 
-export const authOptions: AuthOptions = {
+export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
@@ -56,11 +55,11 @@ export const authOptions: AuthOptions = {
           return null
         }
 
-        const hashedInput = credentials.password
-        console.log('back', { a: credentials.password, b: user.password })
+        const hashedInput = hashPassword(credentials.password)
         if (hashedInput !== user.password) {
           return null
         }
+
         return {
           id: user.id,
           name: user.name,
@@ -74,13 +73,13 @@ export const authOptions: AuthOptions = {
       clientId: AUTH_GITHUB_CLIENT_ID ?? '',
       clientSecret: AUTH_GITHUB_CLIENT_SECRET ?? '',
       httpOptions: {
-        timeout: 20000 // 将超时时间设置为10秒（10000毫秒）
+        timeout: 20000
       }
     }),
     EmailProvider({
       server: {
         host: process.env.EMAIL_SERVER_HOST,
-        port: parseInt(process.env.EMAIL_SERVER_PORT as string),
+        port: parseInt(process.env.EMAIL_SERVER_PORT as string, 10),
         auth: {
           user: process.env.EMAIL_SERVER_USER,
           pass: process.env.EMAIL_SERVER_PASSWORD
@@ -95,26 +94,25 @@ export const authOptions: AuthOptions = {
   },
   session: {
     strategy: 'jwt',
-    maxAge: 24 * 60 * 60 // 过期时间,
+    maxAge: 24 * 60 * 60
   },
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
     async signIn({ user }) {
-      // 登录没有头像则设置一个默认头像
       if (!user?.image) {
         user.image = createAvatar()
-        updateUserProfilePicture(user)
+        await updateUserProfilePicture(user)
       }
+
       return true
     },
     async redirect({ baseUrl }) {
       return baseUrl
     },
     async jwt({ token, user }) {
-      // 如果 user 存在，存储角色信息
       if (user) {
-        token.role = user.role // 将角色存储到 token 中
-        token.id = user.id // 将用户 id 存储到 token 中
+        token.role = user.role
+        token.id = user.id
       }
       return token
     },
@@ -126,6 +124,7 @@ export const authOptions: AuthOptions = {
       if (token?.id) {
         session.user.id = token.id as string
       }
+
       return session
     }
   }

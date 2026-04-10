@@ -2,9 +2,10 @@ import { z } from 'zod'
 import type { ApiRes } from './utils'
 import { prisma } from '@/lib/prisma'
 import type { CacheData } from '../prisma/client'
+import { getCacheDataRecordByKey } from '@/lib/services/cache-data'
 
 const createCacheDataSchema = z.object({
-  key: z.string().min(1, { message: '缓存数据的 key 不能为空！' }),
+  key: z.string().min(1, { message: '缓存数据的 key 不能为空' }),
   data: z.string().min(1, { message: '缓存数据不能为空' }),
   desc: z.string().optional()
 })
@@ -16,7 +17,6 @@ export async function createCacheData(
     const parsed = createCacheDataSchema.safeParse(props)
 
     if (!parsed.success) {
-      // 当解析失败时，返回第一个错误信息
       const errorMessage = parsed.error.issues[0].message
       return { code: 400, data: null, msg: errorMessage }
     }
@@ -24,23 +24,14 @@ export async function createCacheData(
     const { key, data, desc = '' } = parsed.data
 
     const res = await prisma.cacheData.upsert({
-      where: {
-        key: key
-      },
-      update: {
-        data: data,
-        desc: desc
-      },
-      create: {
-        key: key,
-        data: data,
-        desc: desc
-      }
+      where: { key },
+      update: { data, desc },
+      create: { key, data, desc }
     })
 
-    return { code: 0, msg: '创建缓存数据成功！', data: res }
+    return { code: 0, msg: '创建缓存数据成功', data: res }
   } catch (error) {
-    return { code: -1, msg: `创建缓存数据失败：${error}` }
+    return { code: -1, msg: `创建缓存数据失败: ${error}` }
   }
 }
 
@@ -49,31 +40,16 @@ interface GetCacheDataProps {
   next?: NextFetchRequestConfig
 }
 
-// 不向外暴露此方法
 async function getCacheData(props: GetCacheDataProps): Promise<ApiRes<CacheData>> {
   try {
     if (!props.key) {
-      return { code: 400, msg: '缓存数据的 key 不能为空！' }
+      return { code: 400, msg: '缓存数据的 key 不能为空' }
     }
 
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_SITE_URL}/api/cache-data?key=${props.key}`,
-      {
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        next: props.next
-      }
-    )
-
-    if (!response.ok) {
-      const errorMessage = await response.text()
-      return { code: -1, msg: `获取缓存数据失败: ${response.statusText} - ${errorMessage}` }
-    }
-
-    return response.json()
+    const cacheData = await getCacheDataRecordByKey(props.key)
+    return { code: 0, data: cacheData ?? undefined, msg: '获取缓存数据成功' }
   } catch (error) {
-    return { code: -1, msg: `获取缓存数据失败：${error}` }
+    return { code: -1, msg: `获取缓存数据失败: ${error}` }
   }
 }
 
@@ -91,9 +67,8 @@ export async function getCacheDataByKey<T>(props: GetCacheDataProps): Promise<Ap
     }
 
     const data = JSON.parse(raw) as T
-
     return { code: 0, data, msg: '获取缓存数据成功' }
   } catch (error) {
-    return { code: -1, msg: `获取缓存数据失败：${error}` }
+    return { code: -1, msg: `获取缓存数据失败: ${error}` }
   }
 }

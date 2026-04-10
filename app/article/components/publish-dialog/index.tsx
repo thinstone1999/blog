@@ -4,13 +4,13 @@ import { useState } from 'react'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
-  DialogTitle,
-  DialogDescription
+  DialogTitle
 } from '@/components/ui/dialog'
-import { PublishArticleInfo } from '@/types'
-import { PublishForm, FormValues } from './form'
-import { ApiRes } from '@/lib/utils'
+import type { PublishArticleInfo } from '@/types'
+import type { ApiRes } from '@/lib/utils'
+import { PublishForm, type FormValues } from './form'
 
 interface PublishDialogProps {
   children: React.ReactNode
@@ -35,8 +35,8 @@ export function PublishDialog({ children, articleInfo, onPublish }: PublishDialo
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="sm:max-w-[520px]">
           <DialogHeader>
-            <DialogTitle>发布文章</DialogTitle>
-            <DialogDescription>请填写必要信息以完成发布</DialogDescription>
+            <DialogTitle>Publish Article</DialogTitle>
+            <DialogDescription>Fill in the required fields before publishing.</DialogDescription>
           </DialogHeader>
 
           <PublishForm

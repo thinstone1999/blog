@@ -1,43 +1,42 @@
-import { Icon } from '@iconify/react'
-import { ContentCard } from './ContentCard'
-import Link from 'next/link'
-import { Article } from '@/prisma/client'
-import { TimeInSeconds } from '@/lib/enums'
-import { getJumpArticleDetailsUrl } from '@/lib/utils'
 import dayjs from 'dayjs'
+import Link from 'next/link'
+import { Clock3, Eye, Star, ThumbsUp } from 'lucide-react'
+import { ContentCard } from './ContentCard'
+import { getJumpArticleDetailsUrl } from '@/lib/utils'
+import { getArticleListItems, type ArticleListItem } from '@/lib/services/article'
 
-function NoFound() {
-  return <p className="text-center text-gray-500 dark:text-gray-400 py-8">No articles found.</p>
+function EmptyArticles() {
+  return <p className="py-8 text-center text-gray-500 dark:text-gray-400">No articles found.</p>
 }
 
-function ArticleList({ articles }: { articles: Article[] }) {
+function ArticleList({ articles }: { articles: ArticleListItem[] }) {
   return (
-    <div key="content" className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {articles?.map((article) => (
+    <div key="content" className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      {articles.map((article) => (
         <div
           key={article.id}
-          className="block transition duration-300 ease-in-out hover:bg-black/10 dark:hover:bg-white/10 rounded p-2"
+          className="block rounded p-2 transition duration-300 ease-in-out hover:bg-black/10 dark:hover:bg-white/10"
         >
           <Link href={getJumpArticleDetailsUrl(article)} target="_blank" rel="noopener noreferrer">
-            <h3 className="text-lg font-semibold mb-2 transition duration-300">{article.title}</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+            <h3 className="mb-2 text-lg font-semibold transition duration-300">{article.title}</h3>
+            <p className="mb-3 line-clamp-2 text-sm text-gray-600 dark:text-gray-400">
               {article.summary || 'No description available'}
             </p>
-            <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 space-x-4">
+            <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
               <span className="flex items-center">
-                <Icon icon="mdi:star" className="w-4 h-4 mr-1 text-yellow-500" />
+                <Star className="mr-1 h-4 w-4 text-yellow-500" />
                 {article.favorites}
               </span>
               <span className="flex items-center">
-                <Icon icon="mdi:thumb-up" className="w-4 h-4 mr-1 text-green-500" />
+                <ThumbsUp className="mr-1 h-4 w-4 text-green-500" />
                 {article.likes}
               </span>
               <span className="flex items-center">
-                <Icon icon="mdi:eye" className="w-4 h-4 mr-1 text-blue-500" />
+                <Eye className="mr-1 h-4 w-4 text-blue-500" />
                 {article.views}
               </span>
               <span className="flex items-center">
-                <Icon icon="mdi:clock-time-five-outline" className="w-4 h-4 mr-1" />
+                <Clock3 className="mr-1 h-4 w-4" />
                 {dayjs(article.createdAt).format('YYYY-MM-DD HH:mm:ss')}
               </span>
             </div>
@@ -48,30 +47,15 @@ function ArticleList({ articles }: { articles: Article[] }) {
   )
 }
 
-async function getJueJinArticles() {
-  try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/articles/all`, {
-      next: { revalidate: TimeInSeconds.oneHour }
-    })
-    const json = await res.json()
-    return json.code === 0 ? json.data : []
-  } catch {
-    return []
-  }
-}
-
 export async function JueJinArticles() {
-  const list = (await getJueJinArticles()) as Article[]
-
-  // 先安收藏数排序获取前六个，然后根据创建时间排序
-  const articles = list
+  const articles = (await getArticleListItems())
     .sort((a, b) => b.likes - a.likes)
     .slice(0, 6)
     .sort((a, b) => dayjs(b.createdAt).unix() - dayjs(a.createdAt).unix())
 
   return (
     <ContentCard title="文章">
-      {articles.length === 0 ? <NoFound /> : <ArticleList articles={articles} />}
+      {articles.length === 0 ? <EmptyArticles /> : <ArticleList articles={articles} />}
     </ContentCard>
   )
 }

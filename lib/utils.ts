@@ -1,9 +1,8 @@
+import { createHash } from 'crypto'
+import { v4 as uuidv4 } from 'uuid'
 import { type ClassValue, clsx } from 'clsx'
 import { NextResponse } from 'next/server'
 import { twMerge } from 'tailwind-merge'
-import { Article } from '../prisma/client'
-import { v4 as uuidv4 } from 'uuid'
-import { createHash } from 'crypto'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -42,12 +41,15 @@ export async function getFileHash(file: File) {
   const arrayBuffer = await file.arrayBuffer()
   const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer)
   const hashArray = Array.from(new Uint8Array(hashBuffer))
-  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
+  return hashArray.map((byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
-// 获取跳转文章详情路径
-export function getJumpArticleDetailsUrl(info: Article) {
-  // console.log("backEnd", info)
+type ArticleLinkTarget = {
+  id: string
+  source?: string | null
+}
+
+export function getJumpArticleDetailsUrl(info: ArticleLinkTarget) {
   return info.source === '00' ? `/article/${info.id}` : `https://juejin.cn/post/${info.id}`
 }
 
@@ -55,8 +57,6 @@ export function generateUUID() {
   return uuidv4().replaceAll('-', '')
 }
 
-// 使用 SHA-256 哈希密码
 export function hashPassword(password: string): string {
-  //return password
   return createHash('sha256').update(password).digest('hex')
 }

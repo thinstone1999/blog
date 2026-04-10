@@ -1,9 +1,10 @@
 import { getServerSession } from 'next-auth'
+import { redirect } from 'next/navigation'
 import { authOptions } from '@/app/api/auth/[...nextauth]/authOptions'
 import { sendJson } from '@/lib/utils'
 
 export async function getAuthSession() {
-  return await getServerSession(authOptions)
+  return getServerSession(authOptions)
 }
 
 export async function requireAdmin() {
@@ -24,4 +25,14 @@ export async function requireAdmin() {
   }
 
   return { error: null, session }
+}
+
+export async function requireAdminPage() {
+  const session = await getAuthSession()
+
+  if (!session?.user || session.user.role !== '00') {
+    redirect('/')
+  }
+
+  return session
 }

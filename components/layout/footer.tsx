@@ -1,52 +1,36 @@
 'use client'
 
-import { routerList } from '@/lib/routers'
 import Link from 'next/link'
-import { Icon } from '@iconify/react'
-import { EmailSubscription } from './email-subscription'
+import { Rss } from 'lucide-react'
 import { useSession } from 'next-auth/react'
+import { EmailSubscription } from './email-subscription'
+import { getHeaderRoutes } from '@/lib/routers'
 
 export default function LayoutFooter() {
   const githubUserName = process.env.NEXT_PUBLIC_GITHUB_USER_NAME ?? ''
 
   return (
-    <footer className="dark:text-white bg-transparent">
-      <div className="max-w-4xl mx-auto px-2 my-4">
-        <NavList></NavList>
-
-        <Subscription className="mt-4"></Subscription>
-
-        <Copyright githubUserName={githubUserName}></Copyright>
+    <footer className="bg-transparent dark:text-white">
+      <div className="mx-auto my-4 max-w-4xl px-2">
+        <NavList />
+        <Subscription className="mt-4" />
+        <Copyright githubUserName={githubUserName} />
       </div>
     </footer>
   )
 }
 
 function NavList() {
-  const { status } = useSession()
-
-  // 过滤掉需要登录才能访问的路由
-  const filteredRouterList = routerList.filter((item) => {
-    const restrictedPaths = [
-      '/traffic-management-page',
-      '/traffic-stats-page',
-      '/traffic',
-      '/traffic/stats'
-    ]
-    // 如果是受限路径且用户未登录，则不显示
-    return !(restrictedPaths.includes(item.path) && status !== 'authenticated')
-  })
+  const { data: session } = useSession()
+  const routes = getHeaderRoutes(session?.user?.role === '00')
 
   return (
     <div>
-      <h3 className="text-lg font-semibold mb-4">快速链接</h3>
-      <ul className="flex items-center space-x-2 flex-wrap">
-        {filteredRouterList.map((item) => (
+      <h3 className="mb-4 text-lg font-semibold">Quick Links</h3>
+      <ul className="flex flex-wrap items-center space-x-2">
+        {routes.map((item) => (
           <li key={item.path} className="mb-1">
-            <Link
-              href={item.path}
-              className="text-gray-500 hover:text-black hover:dark:text-white mx-2"
-            >
+            <Link href={item.path} className="mx-2 text-gray-500 hover:text-black hover:dark:text-white">
               {item.name}
             </Link>
           </li>
@@ -59,19 +43,15 @@ function NavList() {
 function Subscription({ className }: { className: string }) {
   return (
     <div className={className}>
-      <h3 className="text-lg font-semibold mb-4">订阅</h3>
-      <p className="text-gray-500 mb-4">可以及时获取我的最新动态</p>
+      <h3 className="mb-4 text-lg font-semibold">Subscribe</h3>
+      <p className="mb-4 text-gray-500">Stay up to date with the latest posts.</p>
 
-      <div className=" grid grid-cols-1 md:grid-cols-2 gap-4">
-        <EmailSubscription></EmailSubscription>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <EmailSubscription />
 
-        <Link
-          href="/rss"
-          target="_blank"
-          className="flex items-center justify-end hover:text-gray-500"
-        >
-          <p className="mr-4 text-lg">RSS 订阅</p>
-          <Icon icon="mingcute:rss-2-fill" width="24px"></Icon>
+        <Link href="/rss" target="_blank" className="flex items-center justify-end hover:text-gray-500">
+          <p className="mr-4 text-lg">RSS Feed</p>
+          <Rss width={24} height={24} />
         </Link>
       </div>
     </div>
@@ -80,7 +60,7 @@ function Subscription({ className }: { className: string }) {
 
 function Copyright({ githubUserName }: { githubUserName: string }) {
   return (
-    <div className="mt-8 pt-8 border-t text-center">
+    <div className="mt-8 border-t pt-8 text-center">
       <Link
         href={`https://github.com/${githubUserName}/blog/blob/main/LICENSE`}
         target="_blank"

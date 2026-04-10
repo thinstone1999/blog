@@ -1,63 +1,28 @@
-'use client'
+import { notFound } from 'next/navigation'
+import { ArticleEditorShell } from '@/app/article/components/article-editor-shell'
+import { requireAdminPage } from '@/lib/auth'
+import { getArticleById } from '@/lib/services/article'
 
-import { useEffect, use } from 'react'
-import { toast } from 'sonner'
-import { BytemdEditor } from '@/components/bytemd/editor'
-import { useImmer } from 'use-immer'
-import { PublishArticleInfo } from '@/types'
-import { LayoutHeader } from '@/app/article/components/header'
-import { RequireAdmin } from '@/components/auth/require-admin'
+export default async function EditArticlePage(props: { params: Promise<{ id: string }> }) {
+  await requireAdminPage()
+  const params = await props.params
+  const article = await getArticleById(params.id)
 
-export default function PublishArticle(props: { params: Promise<{ id: string }> }) {
-  const params = use(props.params)
-
-  const [articleInfo, updateArticleInfo] = useImmer<PublishArticleInfo>({
-    id: params.id,
-    title: '',
-    content: '',
-    classify: '',
-    coverImg: '',
-    summary: ''
-  })
-
-  useEffect(() => {
-    async function getData() {
-      const res = await fetch(`/api/articles/details?id=${params.id}`).then((res) => res.json())
-
-      if (res.code !== 0) {
-        toast('获取文章详情失败!')
-        return
-      }
-
-      updateArticleInfo((draft) => {
-        draft.title = res.data.title || ''
-        draft.classify = res.data.classify || ''
-        draft.coverImg = res.data.coverImg || ''
-        draft.summary = res.data.summary || ''
-        draft.content = res.data.content || ''
-      })
-    }
-    getData()
-  }, [params.id, updateArticleInfo])
+  if (!article) {
+    notFound()
+  }
 
   return (
-    <RequireAdmin>
-      <div className="h-screen overflow-hidden">
-        <LayoutHeader
-          articleInfo={articleInfo}
-          updateArticleInfo={updateArticleInfo}
-          publishButName="编辑"
-        ></LayoutHeader>
-
-        <BytemdEditor
-          content={articleInfo.content}
-          setContent={(val) =>
-            updateArticleInfo((draft) => {
-              draft.content = val || ''
-            })
-          }
-        ></BytemdEditor>
-      </div>
-    </RequireAdmin>
+    <ArticleEditorShell
+      submitLabel="编辑"
+      initialArticleInfo={{
+        id: article.id,
+        title: article.title || '',
+        content: article.content || '',
+        classify: article.classify || '',
+        coverImg: article.coverImg || '',
+        summary: article.summary || ''
+      }}
+    />
   )
 }

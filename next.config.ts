@@ -1,7 +1,28 @@
+import { createRequire } from 'module'
 import type { NextConfig } from 'next'
 
+const require = createRequire(import.meta.url)
+
+type WebpackConfigLike = {
+  plugins?: unknown[]
+}
+
+function getPrismaPluginFactory(): null | (() => unknown) {
+  try {
+    const pluginModule = require('@prisma/nextjs-monorepo-workaround-plugin') as {
+      PrismaPlugin: new () => unknown
+    }
+
+    return () => new pluginModule.PrismaPlugin()
+  } catch {
+    return null
+  }
+}
+
+const prismaPluginFactory = getPrismaPluginFactory()
+
 const nextConfig: NextConfig = {
-  reactStrictMode: false,
+  reactStrictMode: true,
   images: {
     remotePatterns: [
       {
@@ -35,20 +56,17 @@ const nextConfig: NextConfig = {
     ]
   },
 
-  webpack: (config: any, { isServer }: { isServer: boolean }) => {
-    if (isServer && process.env.NODE_ENV === 'production') {
-      // @ts-ignore
-      const { PrismaPlugin } = require('@prisma/nextjs-monorepo-workaround-plugin')
-      config.plugins = [...config.plugins, new PrismaPlugin()]
+  webpack: (config: WebpackConfigLike, { isServer }: { isServer: boolean }) => {
+    if (isServer && process.env.NODE_ENV === 'production' && prismaPluginFactory) {
+      config.plugins = [...(config.plugins ?? []), prismaPluginFactory()]
     }
 
     return config
   },
 
   outputFileTracingIncludes: {
-      '/api/*': ['./node_modules/.prisma/client/*.wasm']
-    },
-  
+    '/api/*': ['./node_modules/.prisma/client/*.wasm']
+  }
 }
 
 export default nextConfig

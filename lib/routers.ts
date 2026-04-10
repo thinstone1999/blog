@@ -1,27 +1,40 @@
-export const routerList = [
+export interface AppRouteItem {
+  path: string
+  name: string
+  icon: 'home' | 'article' | 'guestbook' | 'traffic' | 'trafficStats'
+}
+
+export const publicRoutes: AppRouteItem[] = [
   {
     path: '/',
     name: '首页',
-    icon: 'mdi-light:home'
+    icon: 'home'
   },
   {
     path: '/article/list',
     name: '文章',
-    icon: 'ph:article-light'
+    icon: 'article'
   },
   {
     path: '/guestbook',
     name: '留言板',
-    icon: 'mynaui:message-dots'
-  },
+    icon: 'guestbook'
+  }
+]
+
+export const adminRoutes: AppRouteItem[] = [
   {
-    path: '/traffic-management-page',
+    path: '/traffic',
     name: '流量管理',
-    icon: 'material-symbols:monitoring'
+    icon: 'traffic'
   },
   {
     path: '/traffic/stats',
     name: '流量统计',
-    icon: 'mdi:chart-line'
+    icon: 'trafficStats'
   }
 ]
+
+export function getHeaderRoutes(isAdmin: boolean) {
+  return isAdmin ? [...publicRoutes, ...adminRoutes] : publicRoutes
+}

@@ -1,10 +1,10 @@
-function NoFound() {
+export function EmptyState() {
   return (
-    <div className="text-center py-6">
-      <p className="text-xl text-muted-foreground">这里曾经有一些东西 , 现在不见了!</p>
+    <div className="py-6 text-center">
+      <p className="text-xl text-muted-foreground">这里暂时还没有内容</p>
     </div>
   )
 }
 
-export { NoFound }
-export default NoFound
+export { EmptyState as NoFound }
+export default EmptyState

@@ -1,5 +1,4 @@
-// next-auth.d.ts
-import { DefaultSession } from 'next-auth'
+import 'next-auth'
 
 declare module 'next-auth' {
   interface Session {
@@ -8,9 +7,10 @@ declare module 'next-auth' {
       name: string | null
       email: string | null
       image: string | null
-      role?: string | null // 扩展 Session 类型，添加 role 属性
+      role?: string | null
     }
   }
+
   interface User {
     role?: string | null
   }

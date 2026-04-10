@@ -1,26 +1,30 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
-import { prisma } from '@/lib/prisma'
 import type { ApiRes } from '@/lib/utils'
+import {
+  deleteTrafficRecordByDate,
+  getAllTrafficRecords,
+  getTrafficRecordsByYear,
+  importTrafficRecords as importTrafficRecordsService,
+  upsertTrafficRecord as upsertTrafficRecordService
+} from '@/lib/services/traffic-data'
+import { getTrafficCategories } from '@/lib/traffic-utils'
 
-// 定义流量记录类型
-type TrafficRecord = NonNullable<Awaited<ReturnType<typeof prisma.trafficRecord.findUnique>>>
-
-// ==================== 验证 Schema ====================
+type TrafficRecord = Awaited<ReturnType<typeof getAllTrafficRecords>>[number]
 
 const upsertTrafficRecordSchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}$/, { message: '日期格式必须为YYYY-MM' }),
+  date: z.string().regex(/^\d{4}-\d{2}$/, { message: '日期格式必须为 YYYY-MM' }),
   data: z.record(z.string(), z.number())
 })
 
 const importTrafficRecordsSchema = z.object({
-  records: z.array(z.object({
-    date: z.string().regex(/^\d{4}-\d{2}$/),
-    data: z.record(z.string(), z.number())
-  }))
+  records: z.array(
+    z.object({
+      date: z.string().regex(/^\d{4}-\d{2}$/),
+      data: z.record(z.string(), z.number())
+    })
+  )
 })
-
-// ==================== 流量记录操作 ====================
 
 async function upsertTrafficRecordServer(
   date: string,
@@ -30,71 +34,44 @@ async function upsertTrafficRecordServer(
     const parsed = upsertTrafficRecordSchema.safeParse({ date, data })
 
     if (!parsed.success) {
-      const errorMessage = parsed.error.issues[0].message
-      return { code: 400, data: null, msg: errorMessage }
+      return { code: 400, data: null, msg: parsed.error.issues[0].message }
     }
 
-    const res = await prisma.trafficRecord.upsert({
-      where: { date },
-      update: { data },
-      create: { date, data }
-    })
-
-    return { code: 0, msg: '保存流量记录成功！', data: res }
+    const record = await upsertTrafficRecordService(date, data)
+    return { code: 0, msg: '保存流量记录成功', data: record }
   } catch (error) {
     console.error('保存流量记录失败:', error)
-    return { code: -1, data: null, msg: `保存流量记录失败：${error}` }
+    return { code: -1, data: null, msg: `保存流量记录失败: ${error}` }
   }
 }
 
 async function getAllTrafficRecordsServer(): Promise<ApiRes<TrafficRecord[]>> {
   try {
-    const res = await prisma.trafficRecord.findMany({
-      orderBy: {
-        date: 'desc'
-      }
-    })
-
-    return { code: 0, msg: '获取流量记录成功', data: res }
+    const records = await getAllTrafficRecords()
+    return { code: 0, msg: '获取流量记录成功', data: records }
   } catch (error) {
     console.error('获取流量记录失败:', error)
-    return { code: -1, msg: `获取流量记录失败：${error}` }
+    return { code: -1, msg: `获取流量记录失败: ${error}` }
   }
 }
 
-async function getTrafficRecordsByYearServer(
-  year: string
-): Promise<ApiRes<TrafficRecord[]>> {
+async function getTrafficRecordsByYearServer(year: string): Promise<ApiRes<TrafficRecord[]>> {
   try {
-    const res = await prisma.trafficRecord.findMany({
-      where: {
-        date: {
-          gte: `${year}-01`,
-          lt: `${String(parseInt(year) + 1)}-01`
-        }
-      },
-      orderBy: {
-        date: 'asc'
-      }
-    })
-
-    return { code: 0, msg: '获取流量记录成功', data: res }
+    const records = await getTrafficRecordsByYear(year)
+    return { code: 0, msg: '获取流量记录成功', data: records }
   } catch (error) {
     console.error('获取流量记录失败:', error)
-    return { code: -1, msg: `获取流量记录失败：${error}` }
+    return { code: -1, msg: `获取流量记录失败: ${error}` }
   }
 }
 
 async function deleteTrafficRecordServer(date: string): Promise<ApiRes> {
   try {
-    await prisma.trafficRecord.delete({
-      where: { date }
-    })
-
+    await deleteTrafficRecordByDate(date)
     return { code: 0, msg: '删除流量记录成功' }
   } catch (error) {
     console.error('删除流量记录失败:', error)
-    return { code: -1, msg: `删除流量记录失败：${error}` }
+    return { code: -1, msg: `删除流量记录失败: ${error}` }
   }
 }
 
@@ -105,64 +82,28 @@ async function importTrafficRecordsServer(
     const parsed = importTrafficRecordsSchema.safeParse({ records })
 
     if (!parsed.success) {
-      const errorMessage = parsed.error.issues[0].message
-      return { code: 400, msg: errorMessage }
+      return { code: 400, msg: parsed.error.issues[0].message }
     }
 
-    let imported = 0
-    let updated = 0
-
-    for (const record of records) {
-      const existing = await prisma.trafficRecord.findUnique({
-        where: { date: record.date }
-      })
-
-      if (existing) {
-        // 合并数据：更新已有类别的值，添加新类别
-        const mergedData = { ...(existing.data as Record<string, number>), ...record.data }
-        await prisma.trafficRecord.update({
-          where: { date: record.date },
-          data: { data: mergedData }
-        })
-        updated++
-      } else {
-        await prisma.trafficRecord.create({
-          data: {
-            date: record.date,
-            data: record.data
-          }
-        })
-        imported++
-      }
-    }
-
-    return { code: 0, msg: '导入成功', data: { imported, updated } }
+    const result = await importTrafficRecordsService(records)
+    return { code: 0, msg: '导入成功', data: result }
   } catch (error) {
     console.error('批量导入流量记录失败:', error)
-    return { code: -1, msg: `批量导入流量记录失败：${error}` }
+    return { code: -1, msg: `批量导入流量记录失败: ${error}` }
   }
 }
 
-// 从所有记录中提取类别列表
 async function getAllCategoriesServer(): Promise<ApiRes<string[]>> {
   try {
-    const records = await prisma.trafficRecord.findMany()
-    const categorySet = new Set<string>()
-
-    records.forEach(record => {
-      const data = record.data as Record<string, number>
-      Object.keys(data).forEach(key => categorySet.add(key))
-    })
-
-    const categories = Array.from(categorySet).sort()
-    return { code: 0, msg: '获取类别成功', data: categories }
+    const records = (await getAllTrafficRecords()) as Array<{
+      data: Record<string, number>
+    }>
+    return { code: 0, msg: '获取类别成功', data: getTrafficCategories(records) }
   } catch (error) {
     console.error('获取类别失败:', error)
-    return { code: -1, msg: `获取类别失败：${error}` }
+    return { code: -1, msg: `获取类别失败: ${error}` }
   }
 }
-
-// ==================== HTTP 处理器 ====================
 
 export async function GET(request: NextRequest) {
   try {
@@ -170,28 +111,21 @@ export async function GET(request: NextRequest) {
     const action = searchParams.get('action')
     const year = searchParams.get('year')
 
-    let result
-
     switch (action) {
       case 'getAllTrafficRecords':
       case 'getAllTrafficData':
-        result = await getAllTrafficRecordsServer()
-        break
+        return Response.json(await getAllTrafficRecordsServer())
       case 'getTrafficRecordsByYear':
       case 'getTrafficDataByYear':
         if (!year) {
           return Response.json({ code: 400, msg: '缺少年份参数' })
         }
-        result = await getTrafficRecordsByYearServer(year)
-        break
+        return Response.json(await getTrafficRecordsByYearServer(year))
       case 'getAllCategories':
-        result = await getAllCategoriesServer()
-        break
+        return Response.json(await getAllCategoriesServer())
       default:
         return Response.json({ code: 400, msg: '无效的操作' })
     }
-
-    return Response.json(result)
   } catch (error) {
     console.error('获取流量数据失败:', error)
     return Response.json({ code: -1, msg: '获取流量数据失败' })
@@ -203,20 +137,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { action, ...params } = body
 
-    let result
-
     switch (action) {
       case 'upsertTrafficRecord':
-        result = await upsertTrafficRecordServer(params.date, params.data)
-        break
+        return Response.json(await upsertTrafficRecordServer(params.date, params.data))
       case 'importTrafficRecords':
-        result = await importTrafficRecordsServer(params.records)
-        break
+        return Response.json(await importTrafficRecordsServer(params.records))
       default:
         return Response.json({ code: 400, msg: '无效的操作' })
     }
-
-    return Response.json(result)
   } catch (error) {
     console.error('创建流量数据失败:', error)
     return Response.json({ code: -1, msg: '创建流量数据失败' })
@@ -228,15 +156,15 @@ export async function DELETE(request: NextRequest) {
     const body = await request.json()
     const { action, date } = body
 
-    if (action === 'deleteTrafficRecord') {
-      if (!date) {
-        return Response.json({ code: 400, msg: '缺少日期参数' })
-      }
-      const result = await deleteTrafficRecordServer(date)
-      return Response.json(result)
+    if (action !== 'deleteTrafficRecord') {
+      return Response.json({ code: 400, msg: '无效的操作' })
     }
 
-    return Response.json({ code: 400, msg: '无效的操作' })
+    if (!date) {
+      return Response.json({ code: 400, msg: '缺少日期参数' })
+    }
+
+    return Response.json(await deleteTrafficRecordServer(date))
   } catch (error) {
     console.error('删除流量数据失败:', error)
     return Response.json({ code: -1, msg: '删除流量数据失败' })

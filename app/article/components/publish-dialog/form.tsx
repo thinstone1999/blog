@@ -7,14 +7,14 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
 import { DialogFooter } from '@/components/ui/dialog'
 import { Form } from '@/components/ui/form'
-import { PublishArticleInfo } from '@/types'
+import type { PublishArticleInfo } from '@/types'
 import { FormCategoryField } from './form-category-field'
 import { FormCoverUpload } from './form-cover-upload'
 import { FormSummaryField } from './form-summary-field'
 
 const formSchema = z.object({
-  classify: z.string().min(1, '请选择分类'),
-  summary: z.string().min(1, '请输入摘要'),
+  classify: z.string().min(1, 'Please select a category'),
+  summary: z.string().min(1, 'Please enter a summary'),
   coverImg: z.string().optional()
 })
 
@@ -31,7 +31,9 @@ export function PublishForm({ articleInfo, onPublish, onCancel }: PublishFormPro
   const { handleSubmit, reset } = form
 
   useEffect(() => {
-    if (articleInfo) reset(articleInfo)
+    if (articleInfo) {
+      reset(articleInfo)
+    }
   }, [articleInfo, reset])
 
   return (
@@ -43,9 +45,9 @@ export function PublishForm({ articleInfo, onPublish, onCancel }: PublishFormPro
 
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onCancel}>
-            取消
+            Cancel
           </Button>
-          <Button type="submit">确定并发布</Button>
+          <Button type="submit">Confirm and Publish</Button>
         </DialogFooter>
       </form>
     </Form>

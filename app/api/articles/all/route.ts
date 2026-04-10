@@ -1,15 +1,12 @@
 import { sendJson } from '@/lib/utils'
-import { prisma } from '@/lib/prisma'
+import { getAllArticles } from '@/lib/services/article'
 
 export async function GET() {
   try {
-    const articles = await prisma.article.findMany({
-      orderBy: { createdAt: 'desc' }
-    })
-
+    const articles = await getAllArticles()
     return sendJson({ data: articles })
   } catch (error) {
-    console.error('获取所有文章失败:', error)
-    return sendJson({ code: -1, msg: '获取所有文章失败，请稍后重试' })
+    console.error('获取全部文章失败:', error)
+    return sendJson({ code: -1, msg: '获取全部文章失败，请稍后重试' })
   }
 }
