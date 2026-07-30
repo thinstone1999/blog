@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input'
 import type { TrafficRecord } from '@/types/traffic'
 import {
   createTrafficSeriesIds,
+  filterVisibleSeries,
   getCategorySeriesId,
   TOTAL_SERIES_ID,
   updateSelectedSeries
@@ -147,9 +148,7 @@ export function TrafficStatsClient({
     })
   }
 
-  const visibleDatasets = series
-    .filter((item) => selectedSeriesIds.has(item.id))
-    .map((item) => item.dataset)
+  const visibleDatasets = filterVisibleSeries(series, selectedSeriesIds).map((item) => item.dataset)
 
   const chartData = {
     labels,
@@ -340,15 +339,23 @@ export function TrafficStatsClient({
                   </div>
                 </fieldset>
 
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className={
+                    selectedSeriesIds.size > 0
+                      ? 'sr-only'
+                      : 'flex h-64 items-center justify-center px-4 text-center text-sm text-muted-foreground sm:h-96'
+                  }
+                >
+                  {selectedSeriesIds.size > 0 ? null : '请选择至少一条曲线'}
+                </div>
+
                 {selectedSeriesIds.size > 0 ? (
                   <div className="h-80 min-w-0 sm:h-[30rem]">
                     <Line data={chartData} options={options} />
                   </div>
-                ) : (
-                  <div className="flex h-64 items-center justify-center px-4 text-center text-sm text-muted-foreground sm:h-96">
-                    请选择至少一条曲线
-                  </div>
-                )}
+                ) : null}
               </div>
             ) : (
               <div className="flex h-64 items-center justify-center px-4 text-center sm:h-96">

@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { TrafficStatsClient } from '@/app/traffic/stats/traffic-stats-client'
 import {
   createTrafficSeriesIds,
+  filterVisibleSeries,
   updateSelectedSeries
 } from '@/app/traffic/stats/traffic-legend-utils'
 import type { TrafficRecord } from '@/types/traffic'
@@ -44,6 +45,8 @@ test('TrafficStatsClient renders checked filters for every chart series', () => 
   assert.match(markup, />招商</)
   assert.match(markup, />雪球</)
   assert.match(markup, />总量</)
+  assert.match(markup, /role="status"/)
+  assert.match(markup, /aria-live="polite"/)
 })
 
 test('traffic series selection supports categories and total equally', () => {
@@ -58,4 +61,18 @@ test('traffic series selection supports categories and total equally', () => {
 
   const with招商Again = updateSelectedSeries(only雪球, 'category:招商', true)
   assert.deepEqual([...with招商Again], ['category:雪球', 'category:招商'])
+})
+
+test('visible series filtering keeps selected categories and total in source order', () => {
+  const series = [
+    { id: 'category:招商', value: 20 },
+    { id: 'category:雪球', value: 10 },
+    { id: 'total', value: 30 }
+  ]
+
+  assert.deepEqual(filterVisibleSeries(series, new Set(['category:雪球', 'total'])), [
+    { id: 'category:雪球', value: 10 },
+    { id: 'total', value: 30 }
+  ])
+  assert.deepEqual(filterVisibleSeries(series, new Set()), [])
 })
