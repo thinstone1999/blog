@@ -22,6 +22,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import type { TrafficRecord } from '@/types/traffic'
 import {
+  createTrafficSeriesIds,
+  filterVisibleSeries,
+  getCategorySeriesId,
+  TOTAL_SERIES_ID,
+  updateSelectedSeries
+} from '@/app/traffic/stats/traffic-legend-utils'
+import {
   getMonthlyTrafficChartData,
   getRecentMonthRange,
   getYearlyTrafficChartData
@@ -71,6 +78,10 @@ export function TrafficStatsClient({
   const [startMonth, setStartMonth] = useState(defaultRange.startMonth)
   const [endMonth, setEndMonth] = useState(defaultRange.endMonth)
   const [viewMode, setViewMode] = useState<'month' | 'year'>('month')
+  const allSeriesIds = useMemo(() => createTrafficSeriesIds(initialCategories), [initialCategories])
+  const [selectedSeriesIds, setSelectedSeriesIds] = useState(
+    () => new Set(createTrafficSeriesIds(initialCategories))
+  )
 
   const rangeError =
     !startMonth || !endMonth
@@ -101,28 +112,47 @@ export function TrafficStatsClient({
   const displayCategoryData = chartResult?.categoryData ?? {}
 
   const categoryNames = Object.keys(displayCategoryData)
-  const datasets: ChartDataset<'line', number[]>[] = categoryNames.map((category, index) => ({
-    label: category,
-    data: displayCategoryData[category],
-    borderColor: lineColors[index % lineColors.length],
-    backgroundColor: lineBackgrounds[index % lineBackgrounds.length],
-    tension: 0.1
-  }))
+  const series = categoryNames.map((category, index) => {
+    const color = lineColors[index % lineColors.length]
+    const dataset: ChartDataset<'line', number[]> = {
+      label: category,
+      data: displayCategoryData[category],
+      borderColor: color,
+      backgroundColor: lineBackgrounds[index % lineBackgrounds.length],
+      tension: 0.1
+    }
+
+    return {
+      id: getCategorySeriesId(category),
+      label: category,
+      color,
+      dashed: false,
+      dataset
+    }
+  })
 
   if (categoryNames.length > 0) {
-    datasets.push({
+    series.push({
+      id: TOTAL_SERIES_ID,
       label: '总量',
-      data: displayData,
-      borderColor: 'rgb(54, 162, 235)',
-      backgroundColor: 'rgba(54, 162, 235, 0.2)',
-      borderDash: [5, 5],
-      tension: 0.1
+      color: 'rgb(54, 162, 235)',
+      dashed: true,
+      dataset: {
+        label: '总量',
+        data: displayData,
+        borderColor: 'rgb(54, 162, 235)',
+        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+        borderDash: [5, 5],
+        tension: 0.1
+      }
     })
   }
 
+  const visibleDatasets = filterVisibleSeries(series, selectedSeriesIds).map((item) => item.dataset)
+
   const chartData = {
     labels,
-    datasets
+    datasets: visibleDatasets
   }
 
   const options: ChartOptions<'line'> = {
@@ -130,7 +160,7 @@ export function TrafficStatsClient({
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'top' as const
+        display: false
       },
       title: {
         display: true,
@@ -253,8 +283,79 @@ export function TrafficStatsClient({
                 {rangeError}
               </div>
             ) : categoryNames.length > 0 ? (
-              <div className="h-80 min-w-0 sm:h-[30rem]">
-                <Line data={chartData} options={options} />
+              <div className="flex min-w-0 flex-col gap-4">
+                <fieldset className="min-w-0 rounded-md border p-3">
+                  <legend className="px-1 text-sm font-medium">显示曲线</legend>
+                  <div className="mb-3 flex flex-wrap justify-end gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={selectedSeriesIds.size === allSeriesIds.length}
+                      onClick={() => setSelectedSeriesIds(new Set(allSeriesIds))}
+                    >
+                      全部显示
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={selectedSeriesIds.size === 0}
+                      onClick={() => setSelectedSeriesIds(new Set())}
+                    >
+                      清空
+                    </Button>
+                  </div>
+                  <div className="flex min-w-0 flex-wrap gap-x-4 gap-y-2">
+                    {series.map((item, index) => {
+                      const inputId = `traffic-series-${index}`
+
+                      return (
+                        <label
+                          key={item.id}
+                          className="flex min-w-0 cursor-pointer items-center gap-2 text-sm"
+                          htmlFor={inputId}
+                        >
+                          <input
+                            id={inputId}
+                            type="checkbox"
+                            className="size-4 shrink-0 accent-primary"
+                            checked={selectedSeriesIds.has(item.id)}
+                            onChange={(event) =>
+                              setSelectedSeriesIds((current) =>
+                                updateSelectedSeries(current, item.id, event.target.checked)
+                              )
+                            }
+                          />
+                          <span
+                            aria-hidden="true"
+                            className={`w-6 shrink-0 border-t-2 ${item.dashed ? 'border-dashed' : 'border-solid'}`}
+                            style={{ borderColor: item.color }}
+                          />
+                          <span className="truncate">{item.label}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </fieldset>
+
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className={
+                    selectedSeriesIds.size > 0
+                      ? 'sr-only'
+                      : 'flex h-64 items-center justify-center px-4 text-center text-sm text-muted-foreground sm:h-96'
+                  }
+                >
+                  {selectedSeriesIds.size > 0 ? null : '请选择至少一条曲线'}
+                </div>
+
+                {selectedSeriesIds.size > 0 ? (
+                  <div className="h-80 min-w-0 sm:h-[30rem]">
+                    <Line data={chartData} options={options} />
+                  </div>
+                ) : null}
               </div>
             ) : (
               <div className="flex h-64 items-center justify-center px-4 text-center sm:h-96">
