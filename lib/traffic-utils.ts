@@ -4,8 +4,62 @@ type TrafficCategorySource = {
   data: Record<string, number>
 }
 
+const MONTHS_PER_YEAR = 12
+const RECENT_MONTH_COUNT = 12
+const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/
+
 export function getYearOptions(baseYear = new Date().getFullYear(), range = 10) {
   return Array.from({ length: range }, (_, index) => String(baseYear - 5 + index))
+}
+
+export function getRecentMonthRange(endMonth = getCurrentMonth()) {
+  const endMonthIndex = parseMonth(endMonth)
+
+  return {
+    startMonth: formatMonth(endMonthIndex - RECENT_MONTH_COUNT + 1),
+    endMonth
+  }
+}
+
+export function getMonthlyTrafficChartData(
+  records: TrafficRecord[],
+  categories: string[],
+  startMonth: string,
+  endMonth: string
+) {
+  const startMonthIndex = parseMonth(startMonth)
+  const endMonthIndex = parseMonth(endMonth)
+
+  if (startMonthIndex > endMonthIndex) {
+    throw new Error('月份范围无效')
+  }
+
+  const labels = Array.from({ length: endMonthIndex - startMonthIndex + 1 }, (_, index) =>
+    formatMonth(startMonthIndex + index)
+  )
+  const recordsByMonth = new Map(records.map((record) => [record.date, record]))
+  const priorRecord = [...records]
+    .filter((record) => record.date < startMonth)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .at(-1)
+  let snapshot = getCategorySnapshot(priorRecord, categories)
+  const categoryData = Object.fromEntries(categories.map((category) => [category, [] as number[]]))
+  const amounts: number[] = []
+
+  labels.forEach((month) => {
+    const record = recordsByMonth.get(month)
+
+    if (record) {
+      snapshot = getCategorySnapshot(record, categories)
+    }
+
+    categories.forEach((category) => {
+      categoryData[category].push(snapshot[category])
+    })
+    amounts.push(categories.reduce((total, category) => total + snapshot[category], 0))
+  })
+
+  return { labels, amounts, categoryData }
 }
 
 export function getTrafficCategories(records: TrafficCategorySource[]) {
@@ -200,4 +254,28 @@ function splitCsvLine(line: string) {
   values.push(currentValue.trim().replace(/^"|"$/g, ''))
 
   return values
+}
+
+function getCurrentMonth() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+
+function parseMonth(month: string) {
+  if (!MONTH_PATTERN.test(month)) {
+    throw new Error('月份范围无效')
+  }
+
+  const [year, monthNumber] = month.split('-').map(Number)
+  return year * MONTHS_PER_YEAR + monthNumber - 1
+}
+
+function formatMonth(monthIndex: number) {
+  const year = Math.floor(monthIndex / MONTHS_PER_YEAR)
+  const month = (monthIndex % MONTHS_PER_YEAR) + 1
+  return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}`
+}
+
+function getCategorySnapshot(record: TrafficRecord | undefined, categories: string[]) {
+  return Object.fromEntries(categories.map((category) => [category, record?.data[category] ?? 0]))
 }
