@@ -62,6 +62,29 @@ export function getMonthlyTrafficChartData(
   return { labels, amounts, categoryData }
 }
 
+export function getYearlyTrafficChartData(records: TrafficRecord[], categories: string[]) {
+  const recordsByYear = new Map<number, TrafficRecord>()
+  const sortedRecords = [...records].sort((a, b) => a.date.localeCompare(b.date))
+
+  sortedRecords.forEach((record) => {
+    recordsByYear.set(Number(record.date.split('-')[0]), record)
+  })
+
+  const years = Array.from(recordsByYear.keys()).sort((a, b) => a - b)
+  const categoryData = Object.fromEntries(categories.map((category) => [category, [] as number[]]))
+  const amounts = years.map((year) => {
+    const snapshot = getCategorySnapshot(recordsByYear.get(year), categories)
+
+    categories.forEach((category) => {
+      categoryData[category].push(snapshot[category])
+    })
+
+    return categories.reduce((total, category) => total + snapshot[category], 0)
+  })
+
+  return { years, amounts, categoryData }
+}
+
 export function getTrafficCategories(records: TrafficCategorySource[]) {
   const categorySet = new Set<string>()
 
@@ -139,89 +162,6 @@ export function buildTrafficCsv(records: TrafficRecord[], categories: string[]) 
     })
 
   return [header, ...rows].join('\n')
-}
-
-export function getTrafficChartData(
-  records: TrafficRecord[],
-  categories: string[],
-  selectedYear: number
-) {
-  const monthlyData = Array(12).fill(0)
-  const categoryMonthlyData: Record<string, number[]> = {}
-
-  categories.forEach((category) => {
-    categoryMonthlyData[category] = Array(12).fill(0)
-  })
-
-  records.forEach((record) => {
-    const [year, month] = record.date.split('-')
-    const yearNumber = Number(year)
-    const monthIndex = Number(month) - 1
-
-    if (yearNumber !== selectedYear) {
-      return
-    }
-
-    Object.entries(record.data).forEach(([category, amount]) => {
-      if (!categoryMonthlyData[category]) {
-        categoryMonthlyData[category] = Array(12).fill(0)
-      }
-
-      categoryMonthlyData[category][monthIndex] += amount
-      monthlyData[monthIndex] += amount
-    })
-  })
-
-  const lastMonthWithData = records.reduce((max, record) => {
-    const [year, month] = record.date.split('-')
-    if (Number(year) !== selectedYear) {
-      return max
-    }
-    return Math.max(max, Number(month))
-  }, 0)
-
-  const yearSet = new Set<number>()
-  records.forEach((record) => {
-    yearSet.add(Number(record.date.split('-')[0]))
-  })
-
-  const sortedYears = Array.from(yearSet).sort((a, b) => a - b)
-  const yearlyAmounts: number[] = []
-  const categoryYearlyData: Record<string, number[]> = {}
-
-  categories.forEach((category) => {
-    categoryYearlyData[category] = Array(sortedYears.length).fill(0)
-  })
-
-  sortedYears.forEach((year, yearIndex) => {
-    const lastRecord = [...records]
-      .filter((record) => Number(record.date.split('-')[0]) === year)
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .at(-1)
-
-    let yearTotal = 0
-
-    if (lastRecord) {
-      Object.entries(lastRecord.data).forEach(([category, amount]) => {
-        if (!categoryYearlyData[category]) {
-          categoryYearlyData[category] = Array(sortedYears.length).fill(0)
-        }
-        categoryYearlyData[category][yearIndex] = amount
-        yearTotal += amount
-      })
-    }
-
-    yearlyAmounts.push(yearTotal)
-  })
-
-  return {
-    monthlyData,
-    categoryMonthlyData,
-    lastMonthWithData,
-    sortedYears,
-    yearlyAmounts,
-    categoryYearlyData
-  }
 }
 
 function splitCsvLine(line: string) {

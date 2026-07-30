@@ -5,6 +5,7 @@ import {
   getMonthlyTrafficChartData,
   getRecentMonthRange,
   getTrafficCategories,
+  getYearlyTrafficChartData,
   parseTrafficCsv,
   parseTrafficJson
 } from '@/lib/traffic-utils'
@@ -91,6 +92,63 @@ test('getMonthlyTrafficChartData fills zero without historical snapshots', () =>
     雪球: [0, 0, 0]
   })
   assert.deepEqual(result.amounts, [0, 0, 0])
+})
+
+test('getYearlyTrafficChartData uses the final cumulative snapshot of each year', () => {
+  const yearlyRecords: TrafficRecord[] = [
+    {
+      id: '1',
+      date: '2026-12',
+      data: { 招商: 20, 雪球: 5 },
+      createdAt: '2026-12-01T00:00:00.000Z',
+      updatedAt: '2026-12-01T00:00:00.000Z'
+    },
+    {
+      id: '2',
+      date: '2025-12',
+      data: { 招商: 12, 雪球: 3 },
+      createdAt: '2025-12-01T00:00:00.000Z',
+      updatedAt: '2025-12-01T00:00:00.000Z'
+    },
+    {
+      id: '3',
+      date: '2025-06',
+      data: { 招商: 8 },
+      createdAt: '2025-06-01T00:00:00.000Z',
+      updatedAt: '2025-06-01T00:00:00.000Z'
+    }
+  ]
+
+  const result = getYearlyTrafficChartData(yearlyRecords, ['招商', '雪球'])
+
+  assert.deepEqual(result, {
+    years: [2025, 2026],
+    amounts: [15, 25],
+    categoryData: {
+      招商: [12, 20],
+      雪球: [3, 5]
+    }
+  })
+})
+
+test('getYearlyTrafficChartData fills missing known categories with zero', () => {
+  const yearlyRecords: TrafficRecord[] = [
+    {
+      id: '1',
+      date: '2025-12',
+      data: { 招商: 12 },
+      createdAt: '2025-12-01T00:00:00.000Z',
+      updatedAt: '2025-12-01T00:00:00.000Z'
+    }
+  ]
+
+  const result = getYearlyTrafficChartData(yearlyRecords, ['招商', '雪球'])
+
+  assert.deepEqual(result.categoryData, {
+    招商: [12],
+    雪球: [0]
+  })
+  assert.deepEqual(result.amounts, [12])
 })
 
 test('monthly traffic helpers reject invalid month ranges', () => {
