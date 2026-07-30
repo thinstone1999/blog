@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, CalendarClock } from 'lucide-react'
 import {
   ArcElement,
   CategoryScale,
   type ChartDataset,
+  type ChartOptions,
   Chart as ChartJS,
   Legend,
   LineElement,
@@ -18,17 +19,24 @@ import {
 import { Line } from 'react-chartjs-2'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
 import type { TrafficRecord } from '@/types/traffic'
-import { getTrafficChartData } from '@/lib/traffic-utils'
+import {
+  getMonthlyTrafficChartData,
+  getRecentMonthRange,
+  getYearlyTrafficChartData
+} from '@/lib/traffic-utils'
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ArcElement, Title, Tooltip, Legend)
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend
+)
 
 const lineColors = [
   'rgb(255, 99, 132)',
@@ -59,30 +67,38 @@ export function TrafficStatsClient({
   initialRecords: TrafficRecord[]
   initialCategories: string[]
 }) {
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+  const [defaultRange] = useState(getRecentMonthRange)
+  const [startMonth, setStartMonth] = useState(defaultRange.startMonth)
+  const [endMonth, setEndMonth] = useState(defaultRange.endMonth)
   const [viewMode, setViewMode] = useState<'month' | 'year'>('month')
 
-  const { lastMonthWithData, monthlyData, categoryMonthlyData, sortedYears, yearlyAmounts, categoryYearlyData } =
-    useMemo(
-      () => getTrafficChartData(initialRecords, initialCategories, selectedYear),
-      [initialCategories, initialRecords, selectedYear]
-    )
+  const rangeError =
+    !startMonth || !endMonth
+      ? '请选择完整的月份范围'
+      : startMonth > endMonth
+        ? '开始月份不能晚于结束月份'
+        : null
 
-  const labels =
-    viewMode === 'month'
-      ? Array.from({ length: lastMonthWithData }, (_, index) => `${index + 1}月`)
-      : sortedYears.map((year) => String(year))
+  const chartResult = useMemo(() => {
+    if (viewMode === 'year') {
+      const yearlyData = getYearlyTrafficChartData(initialRecords, initialCategories)
+      return {
+        labels: yearlyData.years.map(String),
+        amounts: yearlyData.amounts,
+        categoryData: yearlyData.categoryData
+      }
+    }
 
-  const displayData = viewMode === 'month' ? monthlyData.slice(0, lastMonthWithData) : yearlyAmounts
-  const displayCategoryData =
-    viewMode === 'month'
-      ? Object.fromEntries(
-          Object.entries(categoryMonthlyData).map(([category, values]) => [
-            category,
-            values.slice(0, lastMonthWithData)
-          ])
-        )
-      : categoryYearlyData
+    if (rangeError) {
+      return null
+    }
+
+    return getMonthlyTrafficChartData(initialRecords, initialCategories, startMonth, endMonth)
+  }, [endMonth, initialCategories, initialRecords, rangeError, startMonth, viewMode])
+
+  const labels = chartResult?.labels ?? []
+  const displayData = chartResult?.amounts ?? []
+  const displayCategoryData = chartResult?.categoryData ?? {}
 
   const categoryNames = Object.keys(displayCategoryData)
   const datasets: ChartDataset<'line', number[]>[] = categoryNames.map((category, index) => ({
@@ -109,18 +125,25 @@ export function TrafficStatsClient({
     datasets
   }
 
-  const options = {
+  const options: ChartOptions<'line'> = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         position: 'top' as const
       },
       title: {
         display: true,
-        text: viewMode === 'month' ? `${selectedYear} 年度月度流量` : '历年流量趋势'
+        text: viewMode === 'month' ? `${startMonth} 至 ${endMonth} 月度流量` : '历年流量趋势'
       }
     },
     scales: {
+      x: {
+        ticks: {
+          autoSkip: true,
+          maxRotation: 0
+        }
+      },
       y: {
         beginAtZero: true
       }
@@ -132,51 +155,92 @@ export function TrafficStatsClient({
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">流量统计</h1>
         <div className="flex flex-wrap justify-end gap-3">
-          <Link href="/traffic">
-            <Button className="flex items-center gap-2 bg-purple-500 hover:bg-purple-600">
+          <Button asChild variant="outline">
+            <Link href="/traffic">
               <ArrowLeft className="h-4 w-4" />
               流量管理
-            </Button>
-          </Link>
-          <Link href="/">
-            <Button className="flex items-center gap-2">
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link href="/">
               <ArrowLeft className="h-4 w-4" />
               返回首页
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       </div>
 
-      <div className="mb-6 flex flex-wrap gap-4">
-        {viewMode === 'month' ? (
-          <Select value={String(selectedYear)} onValueChange={(value) => setSelectedYear(Number(value))}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {sortedYears
-                .slice()
-                .sort((a, b) => b - a)
-                .map((year) => (
-                  <SelectItem key={year} value={String(year)}>
-                    {year}
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
-        ) : (
-          <div className="text-sm text-gray-500">显示所有有数据的年份</div>
-        )}
-
-        <div className="flex space-x-2">
-          <Button variant={viewMode === 'month' ? 'default' : 'outline'} onClick={() => setViewMode('month')}>
+      <div className="mb-4 flex flex-col gap-4">
+        <div className="flex w-full flex-wrap gap-2">
+          <Button
+            type="button"
+            variant={viewMode === 'month' ? 'default' : 'outline'}
+            aria-pressed={viewMode === 'month'}
+            onClick={() => setViewMode('month')}
+          >
             月度视图
           </Button>
-          <Button variant={viewMode === 'year' ? 'default' : 'outline'} onClick={() => setViewMode('year')}>
+          <Button
+            type="button"
+            variant={viewMode === 'year' ? 'default' : 'outline'}
+            aria-pressed={viewMode === 'year'}
+            onClick={() => setViewMode('year')}
+          >
             年度视图
           </Button>
         </div>
+
+        {viewMode === 'month' ? (
+          <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="grid min-w-0 flex-1 gap-1.5">
+              <label className="text-sm font-medium" htmlFor="traffic-start-month">
+                开始月份
+              </label>
+              <Input
+                id="traffic-start-month"
+                type="month"
+                value={startMonth}
+                max={endMonth}
+                aria-invalid={Boolean(rangeError)}
+                onChange={(event) => setStartMonth(event.target.value)}
+              />
+            </div>
+            <div className="grid min-w-0 flex-1 gap-1.5">
+              <label className="text-sm font-medium" htmlFor="traffic-end-month">
+                结束月份
+              </label>
+              <Input
+                id="traffic-end-month"
+                type="month"
+                value={endMonth}
+                min={startMonth}
+                aria-invalid={Boolean(rangeError)}
+                onChange={(event) => setEndMonth(event.target.value)}
+              />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => {
+                setStartMonth(defaultRange.startMonth)
+                setEndMonth(defaultRange.endMonth)
+              }}
+            >
+              <CalendarClock />
+              最近 12 个月
+            </Button>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">显示所有有数据的年份</p>
+        )}
       </div>
+
+      {viewMode === 'month' && rangeError ? (
+        <p className="mb-4 text-sm text-destructive" role="alert">
+          {rangeError}
+        </p>
+      ) : null}
 
       <div className="mb-6 grid grid-cols-1 gap-6">
         <Card>
@@ -184,11 +248,17 @@ export function TrafficStatsClient({
             <CardTitle>{viewMode === 'month' ? '月度对比' : '年度趋势'}</CardTitle>
           </CardHeader>
           <CardContent>
-            {categoryNames.length > 0 ? (
-              <Line data={chartData} options={options} />
+            {viewMode === 'month' && rangeError ? (
+              <div className="flex h-64 items-center justify-center text-center text-sm text-destructive sm:h-96">
+                {rangeError}
+              </div>
+            ) : categoryNames.length > 0 ? (
+              <div className="h-80 min-w-0 sm:h-[30rem]">
+                <Line data={chartData} options={options} />
+              </div>
             ) : (
-              <div className="flex h-64 items-center justify-center">
-                <p>暂无数据，请先到流量管理页添加记录</p>
+              <div className="flex h-64 items-center justify-center px-4 text-center sm:h-96">
+                <p className="break-words">暂无数据，请先到流量管理页添加记录</p>
               </div>
             )}
           </CardContent>
