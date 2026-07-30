@@ -2,8 +2,11 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
   buildTrafficCsv,
+  formatTrafficDataJson,
+  getLatestTrafficDataJson,
   getMonthlyTrafficChartData,
   getRecentMonthRange,
+  getTrafficJsonValidationError,
   getTrafficCategories,
   getYearlyTrafficChartData,
   parseTrafficCsv,
@@ -24,6 +27,53 @@ const records: TrafficRecord[] = [
 test('parseTrafficJson returns object for valid json', () => {
   assert.deepEqual(parseTrafficJson('{"雪球": 10}'), { 雪球: 10 })
   assert.equal(parseTrafficJson('{"雪球": "10"}'), null)
+})
+
+test('latest traffic data json uses the greatest month across unordered records', () => {
+  const unorderedRecords: TrafficRecord[] = [
+    {
+      id: '1',
+      date: '2026-01',
+      data: { 招商: 10 },
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z'
+    },
+    {
+      id: '2',
+      date: '2025-12',
+      data: { 招商: 8 },
+      createdAt: '2025-12-01T00:00:00.000Z',
+      updatedAt: '2025-12-01T00:00:00.000Z'
+    },
+    {
+      id: '3',
+      date: '2027-03',
+      data: { 招商: 18, 雪球: 2 },
+      createdAt: '2027-03-01T00:00:00.000Z',
+      updatedAt: '2027-03-01T00:00:00.000Z'
+    }
+  ]
+
+  assert.equal(getLatestTrafficDataJson(unorderedRecords), '{\n  "招商": 18,\n  "雪球": 2\n}')
+  assert.equal(getLatestTrafficDataJson([]), '{}')
+})
+
+test('traffic data json formatting uses stable indentation', () => {
+  assert.equal(formatTrafficDataJson({ 雪球: 10, 招商: 20 }), '{\n  "雪球": 10,\n  "招商": 20\n}')
+})
+
+test('traffic json validation reports malformed, unsupported and empty values', () => {
+  assert.equal(getTrafficJsonValidationError('{"雪球": 10}'), null)
+  assert.equal(getTrafficJsonValidationError('{'), '请输入有效的 JSON 对象，且所有值必须为数字')
+  assert.equal(
+    getTrafficJsonValidationError('[1, 2]'),
+    '请输入有效的 JSON 对象，且所有值必须为数字'
+  )
+  assert.equal(
+    getTrafficJsonValidationError('{"雪球": "10"}'),
+    '请输入有效的 JSON 对象，且所有值必须为数字'
+  )
+  assert.equal(getTrafficJsonValidationError('{}'), '数据不能为空')
 })
 
 test('traffic category helpers keep sorted categories', () => {

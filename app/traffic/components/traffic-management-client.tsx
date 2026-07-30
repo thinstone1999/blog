@@ -2,11 +2,12 @@
 
 import { useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Download, Save, Trash2, Upload, X } from 'lucide-react'
+import { ArrowLeft, Braces, Download, RotateCcw, Save, Trash2, Upload, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -18,24 +19,24 @@ import type { TrafficRecord } from '@/types/traffic'
 import {
   buildTrafficCsv,
   filterTrafficRecordsByYear,
+  formatTrafficDataJson,
+  getLatestTrafficDataJson,
   getTrafficCategories,
+  getTrafficJsonValidationError,
   getYearOptions,
   parseTrafficCsv,
   parseTrafficJson
 } from '@/lib/traffic-utils'
-import {
-  deleteTrafficRecord,
-  importTrafficRecords,
-  upsertTrafficRecord
-} from '@/lib/traffic-data'
+import { deleteTrafficRecord, importTrafficRecords, upsertTrafficRecord } from '@/lib/traffic-data'
 
 export function TrafficManagementClient({ initialRecords }: { initialRecords: TrafficRecord[] }) {
   const [trafficRecords, setTrafficRecords] = useState(initialRecords)
   const [formData, setFormData] = useState({
     year: String(new Date().getFullYear()),
     month: String(new Date().getMonth() + 1),
-    jsonData: '{}'
+    jsonData: getLatestTrafficDataJson(initialRecords)
   })
+  const [formJsonTouched, setFormJsonTouched] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingData, setEditingData] = useState('{}')
   const [currentPage, setCurrentPage] = useState(1)
@@ -43,6 +44,12 @@ export function TrafficManagementClient({ initialRecords }: { initialRecords: Tr
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const categories = useMemo(() => getTrafficCategories(trafficRecords), [trafficRecords])
+  const latestTrafficDataJson = useMemo(
+    () => getLatestTrafficDataJson(trafficRecords),
+    [trafficRecords]
+  )
+  const formJsonError = formJsonTouched ? getTrafficJsonValidationError(formData.jsonData) : null
+  const editingJsonError = editingId ? getTrafficJsonValidationError(editingData) : null
   const filteredRecords = useMemo(
     () => filterTrafficRecordsByYear(trafficRecords, filterYear === 'all' ? '' : filterYear),
     [trafficRecords, filterYear]
@@ -137,16 +144,14 @@ export function TrafficManagementClient({ initialRecords }: { initialRecords: Tr
       return
     }
 
-    const data = parseTrafficJson(formData.jsonData)
-    if (!data) {
-      toast.error('JSON 格式不正确')
+    setFormJsonTouched(true)
+    const validationError = getTrafficJsonValidationError(formData.jsonData)
+    if (validationError) {
+      toast.error(validationError)
       return
     }
 
-    if (Object.keys(data).length === 0) {
-      toast.error('数据不能为空')
-      return
-    }
+    const data = parseTrafficJson(formData.jsonData)!
 
     const date = `${formData.year}-${formData.month.padStart(2, '0')}`
     const result = await upsertTrafficRecord(date, data)
@@ -168,9 +173,24 @@ export function TrafficManagementClient({ initialRecords }: { initialRecords: Tr
     setFormData({
       year: String(new Date().getFullYear()),
       month: String(new Date().getMonth() + 1),
-      jsonData: '{}'
+      jsonData: formatTrafficDataJson(data)
     })
+    setFormJsonTouched(false)
     toast.success('保存成功')
+  }
+
+  const handleFormatFormJson = () => {
+    setFormJsonTouched(true)
+    const data = parseTrafficJson(formData.jsonData)
+
+    if (data) {
+      setFormData((prev) => ({ ...prev, jsonData: formatTrafficDataJson(data) }))
+    }
+  }
+
+  const handleFillLatestTrafficData = () => {
+    setFormData((prev) => ({ ...prev, jsonData: latestTrafficDataJson }))
+    setFormJsonTouched(false)
   }
 
   const handleDeleteRecord = async (date: string) => {
@@ -186,11 +206,13 @@ export function TrafficManagementClient({ initialRecords }: { initialRecords: Tr
   }
 
   const handleSaveEdit = async (record: TrafficRecord) => {
-    const data = parseTrafficJson(editingData)
-    if (!data) {
-      toast.error('JSON 格式不正确')
+    const validationError = getTrafficJsonValidationError(editingData)
+    if (validationError) {
+      toast.error(validationError)
       return
     }
+
+    const data = parseTrafficJson(editingData)!
 
     const result = await upsertTrafficRecord(record.date, data)
     if (result.code !== 0 || !result.data) {
@@ -202,6 +224,14 @@ export function TrafficManagementClient({ initialRecords }: { initialRecords: Tr
     setEditingId(null)
     setEditingData('{}')
     toast.success('更新成功')
+  }
+
+  const handleFormatEditingJson = () => {
+    const data = parseTrafficJson(editingData)
+
+    if (data) {
+      setEditingData(formatTrafficDataJson(data))
+    }
   }
 
   return (
@@ -237,7 +267,13 @@ export function TrafficManagementClient({ initialRecords }: { initialRecords: Tr
             <ArrowLeft className="h-4 w-4" />
             返回首页
           </Link>
-          <input ref={fileInputRef} type="file" accept=".csv" onChange={handleImport} className="hidden" />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv"
+            onChange={handleImport}
+            className="hidden"
+          />
         </div>
       </div>
 
@@ -291,21 +327,56 @@ export function TrafficManagementClient({ initialRecords }: { initialRecords: Tr
             </div>
 
             <div className="lg:col-span-3">
-              <Label className="mb-1 block text-sm font-medium text-gray-600 dark:text-gray-400">
-                数据（JSON 格式）
-              </Label>
-              <textarea
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <Label
+                  htmlFor="traffic-json-data"
+                  className="text-sm font-medium text-gray-600 dark:text-gray-400"
+                >
+                  数据（JSON 格式）
+                </Label>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={handleFormatFormJson}>
+                    <Braces className="h-4 w-4" />
+                    格式化
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleFillLatestTrafficData}
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    填充最近一月
+                  </Button>
+                </div>
+              </div>
+              <Textarea
+                id="traffic-json-data"
                 value={formData.jsonData}
-                onChange={(event) =>
+                onChange={(event) => {
+                  setFormJsonTouched(true)
                   setFormData((prev) => ({ ...prev, jsonData: event.target.value }))
-                }
+                }}
                 placeholder='{"雪球": 105.6, "招商": 0}'
-                className="h-24 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 font-mono text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                aria-invalid={Boolean(formJsonError)}
+                aria-describedby="traffic-json-error"
+                spellCheck={false}
+                className="min-h-44 resize-y bg-white font-mono text-sm leading-6 dark:bg-gray-900"
               />
+              <p
+                id="traffic-json-error"
+                aria-live="polite"
+                className="mt-1 min-h-5 text-sm text-destructive"
+              >
+                {formJsonError}
+              </p>
             </div>
 
             <div className="sm:col-span-2 lg:col-span-4">
-              <Button onClick={handleAddTraffic} className="w-full bg-green-500 hover:bg-green-600 sm:w-auto">
+              <Button
+                onClick={handleAddTraffic}
+                className="w-full bg-green-500 hover:bg-green-600 sm:w-auto"
+              >
                 保存记录
               </Button>
             </div>
@@ -364,11 +435,35 @@ export function TrafficManagementClient({ initialRecords }: { initialRecords: Tr
                         <td className="px-4 py-2 font-medium">{record.date}</td>
                         <td className="px-4 py-2">
                           {editingId === record.id ? (
-                            <textarea
-                              value={editingData}
-                              onChange={(event) => setEditingData(event.target.value)}
-                              className="h-32 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 font-mono text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-                            />
+                            <div className="min-w-72 max-w-2xl">
+                              <div className="mb-2 flex justify-end">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={handleFormatEditingJson}
+                                >
+                                  <Braces className="h-4 w-4" />
+                                  格式化
+                                </Button>
+                              </div>
+                              <Textarea
+                                id={`traffic-edit-json-${record.id}`}
+                                value={editingData}
+                                onChange={(event) => setEditingData(event.target.value)}
+                                aria-invalid={Boolean(editingJsonError)}
+                                aria-describedby={`traffic-edit-json-error-${record.id}`}
+                                spellCheck={false}
+                                className="min-h-44 resize-y bg-white font-mono text-sm leading-6 dark:bg-gray-900"
+                              />
+                              <p
+                                id={`traffic-edit-json-error-${record.id}`}
+                                aria-live="polite"
+                                className="mt-1 min-h-5 text-sm text-destructive"
+                              >
+                                {editingJsonError}
+                              </p>
+                            </div>
                           ) : (
                             <pre className="max-w-xl overflow-x-auto rounded bg-gray-50 p-2 font-mono text-sm dark:bg-gray-800">
                               {JSON.stringify(record.data, null, 2)}
@@ -379,7 +474,11 @@ export function TrafficManagementClient({ initialRecords }: { initialRecords: Tr
                           <div className="flex gap-2">
                             {editingId === record.id ? (
                               <>
-                                <Button variant="default" size="sm" onClick={() => handleSaveEdit(record)}>
+                                <Button
+                                  variant="default"
+                                  size="sm"
+                                  onClick={() => handleSaveEdit(record)}
+                                >
                                   <Save className="h-4 w-4" />
                                 </Button>
                                 <Button

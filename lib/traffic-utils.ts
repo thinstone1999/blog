@@ -7,6 +7,8 @@ type TrafficCategorySource = {
 const MONTHS_PER_YEAR = 12
 const RECENT_MONTH_COUNT = 12
 const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/
+const INVALID_TRAFFIC_JSON_MESSAGE = '请输入有效的 JSON 对象，且所有值必须为数字'
+const EMPTY_TRAFFIC_DATA_MESSAGE = '数据不能为空'
 
 export function getYearOptions(baseYear = new Date().getFullYear(), range = 10) {
   return Array.from({ length: range }, (_, index) => String(baseYear - 5 + index))
@@ -123,6 +125,36 @@ export function parseTrafficJson(json: string): Record<string, number> | null {
   } catch {
     return null
   }
+}
+
+export function formatTrafficDataJson(data: Record<string, number>) {
+  return JSON.stringify(data, null, 2)
+}
+
+export function getLatestTrafficDataJson(records: TrafficRecord[]) {
+  const latestRecord = records.reduce<TrafficRecord | undefined>((latest, record) => {
+    if (!latest || record.date > latest.date) {
+      return record
+    }
+
+    return latest
+  }, undefined)
+
+  return formatTrafficDataJson(latestRecord?.data ?? {})
+}
+
+export function getTrafficJsonValidationError(json: string) {
+  const data = parseTrafficJson(json)
+
+  if (!data) {
+    return INVALID_TRAFFIC_JSON_MESSAGE
+  }
+
+  if (Object.keys(data).length === 0) {
+    return EMPTY_TRAFFIC_DATA_MESSAGE
+  }
+
+  return null
 }
 
 export function parseTrafficCsv(content: string) {
